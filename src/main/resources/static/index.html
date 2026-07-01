@@ -1,0 +1,1834 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineVault — Platformă de Film</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+          --bg:         #0a0a0c;
+          --surface:    #111116;
+          --card:       #16161e;
+          --border:     #2a2a38;
+          --gold:       #c9a84c;
+          --gold-dim:   #8a6f2e;
+          --gold-glow:  rgba(201,168,76,0.15);
+          --text:       #e8e4d8;
+          --text-muted: #7a7770;
+          --text-dim:   #4a4742;
+          --red:        #c94c4c;
+          --green:      #4caf7a;
+          --blue:       #4c7ec9;
+          --radius:     6px;
+          --radius-lg:  12px;
+          --font-serif: 'Playfair Display', Georgia, serif;
+          --font-sans:  'DM Sans', sans-serif;
+          --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+          background: var(--bg);
+          color: var(--text);
+          font-family: var(--font-sans);
+          font-size: 15px;
+          line-height: 1.6;
+          min-height: 100vh;
+          overflow-x: hidden;
+        }
+        body::before {
+          content: '';
+          position: fixed; inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+          pointer-events: none; z-index: 9999; opacity: 0.35;
+        }
+
+        h1, h2, h3, h4 { font-family: var(--font-serif); font-weight: 400; }
+        h1 { font-size: 2.2rem; }
+        h2 { font-size: 1.6rem; }
+        h3 { font-size: 1.2rem; }
+        h4 { font-size: 1rem; font-weight: 700; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+        .app-wrap { display: flex; min-height: 100vh; }
+
+        .sidebar {
+          width: 230px; flex-shrink: 0;
+          background: var(--surface);
+          border-right: 1px solid var(--border);
+          display: flex; flex-direction: column;
+          position: fixed; top: 0; left: 0; bottom: 0;
+          z-index: 100;
+        }
+        .sidebar-logo { padding: 28px 24px 20px; border-bottom: 1px solid var(--border); }
+        .sidebar-logo .logo-mark { font-family: var(--font-serif); font-size: 1.5rem; color: var(--gold); letter-spacing: 0.02em; display: block; }
+        .sidebar-logo .logo-sub { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.12em; margin-top: 2px; }
+        .sidebar-nav { flex: 1; padding: 16px 0; overflow-y: auto; }
+        .nav-section-title { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--text-dim); padding: 10px 24px 4px; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 24px; color: var(--text-muted); cursor: pointer; border-left: 2px solid transparent; transition: var(--transition); user-select: none; font-size: 0.88rem; }
+        .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+        .nav-item.active { color: var(--gold); border-left-color: var(--gold); background: var(--gold-glow); }
+        .nav-item .icon { font-size: 1rem; width: 18px; text-align: center; }
+        .sidebar-footer { padding: 16px 24px; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-dim); }
+
+        .main { margin-left: 230px; flex: 1; display: flex; flex-direction: column; }
+        .topbar { height: 56px; background: rgba(10,10,12,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; position: sticky; top: 0; z-index: 50; gap: 16px; }
+        .topbar-title { font-family: var(--font-serif); font-size: 1.05rem; color: var(--text); flex: 1; }
+        .topbar-search { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 12px; min-width: 220px; }
+        .topbar-search input { background: none; border: none; outline: none; color: var(--text); font-family: var(--font-sans); font-size: 0.85rem; width: 100%; }
+        .topbar-search input::placeholder { color: var(--text-dim); }
+
+        .page-content { flex: 1; padding: 32px; max-width: 1100px; }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .page-header { margin-bottom: 28px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+        .page-header h2 { color: var(--gold); }
+        .page-header p { color: var(--text-muted); margin-top: 4px; font-size: 0.88rem; }
+
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+        .film-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; cursor: pointer; transition: var(--transition); position: relative; }
+        .film-card:hover { border-color: var(--gold-dim); transform: translateY(-3px); box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px var(--gold-dim); }
+        .film-card-poster { height: 140px; background: linear-gradient(135deg, #1a1a28 0%, #0e0e18 100%); display: flex; align-items: center; justify-content: center; font-size: 2.8rem; border-bottom: 1px solid var(--border); position: relative; }
+        .film-card-poster .rating-badge { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); border: 1px solid var(--gold-dim); border-radius: 4px; padding: 2px 7px; font-size: 0.72rem; color: var(--gold); font-family: var(--font-sans); }
+        .film-card-body { padding: 12px 14px; }
+        .film-card-title { font-family: var(--font-serif); font-size: 0.95rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .film-card-meta { margin-top: 4px; font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 8px; }
+
+        .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 0.7rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+        .tag-gold { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.25); }
+        .tag-blue { background: rgba(76,126,201,0.15); color: var(--blue); border: 1px solid rgba(76,126,201,0.25); }
+        .tag-red  { background: rgba(201,76,76,0.15); color: var(--red); border: 1px solid rgba(201,76,76,0.25); }
+        .tag-green{ background: rgba(76,175,122,0.15); color: var(--green); border: 1px solid rgba(76,175,122,0.25); }
+
+        .form-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; max-width: 520px; }
+        .form-row { margin-bottom: 18px; }
+        .form-row label { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 6px; }
+        .form-row input, .form-row textarea, .form-row select { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px; color: var(--text); font-family: var(--font-sans); font-size: 0.9rem; transition: var(--transition); outline: none; }
+        .form-row input:focus, .form-row textarea:focus, .form-row select:focus { border-color: var(--gold-dim); box-shadow: 0 0 0 3px var(--gold-glow); }
+        .form-row textarea { resize: vertical; min-height: 80px; }
+        .form-row select option { background: var(--surface); }
+
+        .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 20px; border: none; border-radius: var(--radius); font-family: var(--font-sans); font-size: 0.88rem; font-weight: 500; cursor: pointer; transition: var(--transition); text-decoration: none; user-select: none; }
+        .btn-gold { background: var(--gold); color: #0a0a0c; }
+        .btn-gold:hover { background: #d4b254; transform: translateY(-1px); }
+        .btn-outline { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+        .btn-outline:hover { border-color: var(--gold-dim); color: var(--gold); }
+        .btn-ghost { background: var(--card); color: var(--text-muted); border: 1px solid var(--border); }
+        .btn-ghost:hover { color: var(--text); }
+        .btn-sm { padding: 6px 13px; font-size: 0.8rem; }
+        .btn-block { width: 100%; justify-content: center; }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+        .data-table thead th { text-align: left; padding: 10px 14px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); border-bottom: 1px solid var(--border); font-family: var(--font-sans); font-weight: 500; }
+        .data-table tbody tr { border-bottom: 1px solid rgba(42,42,56,0.6); transition: var(--transition); }
+        .data-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+        .data-table tbody td { padding: 11px 14px; color: var(--text-muted); vertical-align: middle; }
+        .data-table tbody td:first-child { color: var(--text); }
+        .table-wrap { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+
+        .search-bar { display: flex; gap: 10px; margin-bottom: 22px; }
+        .search-bar input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 14px; color: var(--text); font-family: var(--font-sans); font-size: 0.9rem; outline: none; transition: var(--transition); }
+        .search-bar input:focus { border-color: var(--gold-dim); box-shadow: 0 0 0 3px var(--gold-glow); }
+
+        .detail-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); z-index: 200; align-items: center; justify-content: center; padding: 24px; }
+        .detail-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+        .detail-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 780px; max-height: 88vh; overflow-y: auto; position: relative; }
+        .detail-header { padding: 24px 28px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
+        .detail-body { padding: 24px 28px; overflow-x: hidden; }
+        .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer; padding: 4px; line-height: 1; transition: var(--transition); }
+        .close-btn:hover { color: var(--text); }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px; }
+        .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 20px 16px; }
+        .stat-card .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 6px; }
+        .stat-card .stat-value { font-family: var(--font-serif); font-size: 1.9rem; color: var(--gold); line-height: 1; }
+        .stat-card .stat-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+        .review-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 18px 20px; margin-bottom: 12px; }
+        .review-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        .review-author { font-weight: 500; color: var(--text); font-size: 0.9rem; }
+        .review-text { color: var(--text-muted); font-size: 0.87rem; line-height: 1.6; }
+
+        #castList, #versiuniList { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; padding: 4px 0; margin: 0; width: 100%; overflow: visible; }
+
+        .actor-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; display: flex; gap: 12px; align-items: center; transition: var(--transition); white-space: normal; cursor: pointer; }
+        .actor-card:hover { border-color: var(--gold-dim); background: rgba(255,255,255,0.02); transform: translateY(-2px); }
+
+        .versiune-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; display: flex; gap: 12px; align-items: center; transition: var(--transition); cursor: pointer; white-space: normal; }
+        .versiune-card:hover { border-color: var(--gold-dim); background: rgba(255,255,255,0.02); transform: translateY(-2px); }
+
+        #actorDetailOverlay .detail-panel { max-width: 680px; }
+        .detail-recenzii-list .review-card { margin-bottom: 10px; }
+
+        .viz-modal-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 420px; position: relative; animation: scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+        .viz-modal-header { padding: 22px 24px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; }
+        .viz-modal-body { padding: 22px 24px; }
+        .viz-film-info { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        .viz-film-info .viz-film-icon { font-size: 1.4rem; }
+        .viz-film-title { font-family: var(--font-serif); font-size: 0.95rem; color: var(--text); }
+        .viz-versiune-name { font-size: 0.78rem; color: var(--gold); margin-top: 2px; }
+
+        .stare-toggle { display: flex; gap: 10px; margin-top: 8px; }
+        .stare-btn { flex: 1; padding: 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font-family: var(--font-sans); font-size: 0.88rem; cursor: pointer; transition: var(--transition); text-align: center; }
+        .stare-btn:hover { border-color: var(--gold-dim); color: var(--text); }
+        .stare-btn.active-nu { background: rgba(201,76,76,0.15); border-color: var(--red); color: var(--red); }
+        .stare-btn.active-da { background: rgba(76,175,122,0.15); border-color: var(--green); color: var(--green); }
+
+        .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9000; display: flex; flex-direction: column; gap: 8px; }
+        .toast { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 18px; font-size: 0.87rem; color: var(--text); box-shadow: 0 4px 24px rgba(0,0,0,0.5); animation: slideIn 0.3s ease; max-width: 320px; }
+        .toast.success { border-color: var(--green); }
+        .toast.error { border-color: var(--red); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { to { transform: translateX(120%); opacity: 0; } }
+
+        .loading { display: flex; align-items: center; justify-content: center; padding: 48px; color: var(--text-dim); gap: 10px; font-size: 0.88rem; }
+        .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-state { text-align: center; padding: 48px; color: var(--text-dim); }
+        .empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .empty-state p { font-size: 0.9rem; }
+
+        .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+        .flex { display: flex; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+        .gap-8 { gap: 8px; } .gap-12 { gap: 12px; } .gap-16 { gap: 16px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; }
+
+        .tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+        .tab-btn { padding: 8px 16px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-family: var(--font-sans); font-size: 0.87rem; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: var(--transition); }
+        .tab-btn:hover { color: var(--text); }
+        .tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; animation: fadeIn 0.2s ease; }
+
+        .dash-film-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(42,42,56,0.5); }
+        .dash-film-row:last-child { border-bottom: none; }
+        .dash-film-num { width: 24px; height: 24px; border-radius: 50%; background: var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: var(--text-dim); flex-shrink: 0; }
+        .dash-film-title { flex: 1; font-size: 0.88rem; color: var(--text); }
+        .dash-film-stat { font-size: 0.78rem; color: var(--gold); }
+
+        .analyze-result { margin-top: 16px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: none; }
+        .analyze-result.show { display: block; animation: fadeIn 0.2s ease; }
+        .analyze-emoji { font-size: 2rem; margin-bottom: 8px; }
+        .analyze-label { font-family: var(--font-serif); font-size: 1.1rem; }
+
+        .sentiment-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px 28px; flex: 1; min-width: 280px; }
+        .sentiment-card h3 { color: var(--gold); margin-bottom: 8px; }
+        .sentiment-card p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 18px; }
+        .sent-result-box { margin-top: 16px; padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: none; text-align: center; }
+        .sent-result-box.show { display: block; animation: fadeIn 0.2s ease; }
+        .sent-result-emoji { font-size: 2.5rem; margin-bottom: 8px; }
+        .sent-result-label { font-family: var(--font-serif); font-size: 1.2rem; }
+        .sent-result-detail { color: var(--text-muted); font-size: 0.82rem; margin-top: 6px; }
+        .sent-result-bars { margin-top: 14px; }
+        .sent-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .sent-bar-label { font-size: 0.75rem; color: var(--text-muted); width: 60px; text-align: right; }
+        .sent-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+        .sent-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+        .sent-bar-pct { font-size: 0.72rem; color: var(--text-dim); width: 32px; }
+        .sentiment-pos { background: var(--green); }
+        .sentiment-neg { background: var(--red); }
+        .sentiment-neu { background: var(--gold); }
+
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .chip { padding: 4px 11px; border-radius: 20px; font-size: 0.75rem; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; transition: var(--transition); user-select: none; }
+        .chip:hover { border-color: var(--gold-dim); color: var(--gold); }
+        .chip.selected { background: var(--gold-glow); border-color: var(--gold-dim); color: var(--gold); }
+
+        /* ── CLIENT PROFILE ── */
+        .profile-hero {
+          background: linear-gradient(135deg, #16161e 0%, #1a1828 100%);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          padding: 28px;
+          margin-bottom: 20px;
+          display: flex; align-items: center; gap: 20px;
+        }
+        .profile-avatar {
+          width: 72px; height: 72px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--gold-dim), #1a1220);
+          border: 2px solid var(--gold-dim);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 2rem; flex-shrink: 0;
+        }
+        .profile-name { font-family: var(--font-serif); font-size: 1.5rem; }
+        .profile-sub  { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
+
+        /* ── PROFILE INFO GRID ── */
+        .profile-info-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 12px;
+          margin-bottom: 24px;
+        }
+        .profile-info-card {
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          padding: 16px 18px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .profile-info-icon {
+          font-size: 1.4rem;
+          flex-shrink: 0;
+          width: 36px; height: 36px;
+          background: var(--surface);
+          border-radius: 8px;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .profile-info-label {
+          font-size: 0.68rem;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: var(--text-dim);
+          margin-bottom: 2px;
+        }
+        .profile-info-value {
+          font-size: 0.9rem;
+          color: var(--text);
+          font-weight: 500;
+        }
+
+        /* ── PROFILE STATS BAR ── */
+        .profile-stats-row {
+          display: flex;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-bottom: 0;
+        }
+        .profile-stat-pill {
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          padding: 16px 20px;
+          flex: 1;
+          min-width: 120px;
+          text-align: center;
+        }
+        .profile-stat-pill .psp-value {
+          font-family: var(--font-serif);
+          font-size: 1.8rem;
+          color: var(--gold);
+          line-height: 1;
+        }
+        .profile-stat-pill .psp-label {
+          font-size: 0.72rem;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-top: 4px;
+        }
+
+        .btn-logout { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; background: transparent; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font-family: var(--font-sans); font-size: 0.82rem; cursor: pointer; transition: var(--transition); margin-top: 10px; }
+        .btn-logout:hover { border-color: var(--red); color: var(--red); background: rgba(201,76,76,0.08); }
+
+        .actor-films-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 8px; }
+        .actor-film-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; transition: var(--transition); }
+        .actor-film-card:hover { border-color: var(--gold-dim); }
+        .actor-film-card .af-title { font-family: var(--font-serif); font-size: 0.9rem; color: var(--text); }
+        .actor-film-card .af-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; }
+        .actor-film-card .af-rol  { font-size: 0.75rem; color: var(--gold); margin-top: 3px; }
+
+        @media (max-width: 860px) {
+          .sidebar { transform: translateX(-100%); }
+          .sidebar.open { transform: translateX(0); }
+          .main { margin-left: 0; }
+          .grid-2 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- FILM DETAIL OVERLAY -->
+<div class="detail-overlay" id="filmDetailOverlay">
+    <div class="detail-panel" id="filmDetailPanel">
+        <div class="detail-header">
+            <div>
+                <h2 id="detailTitle" style="color:var(--gold)">Titlu film</h2>
+                <div id="detailMeta" style="color:var(--text-muted);font-size:0.85rem;margin-top:4px"></div>
+            </div>
+            <button class="close-btn" onclick="closeFilmDetail()">✕</button>
+        </div>
+        <div class="detail-body">
+            <div id="detailDesc" style="color:var(--text-muted);margin-bottom:20px;font-size:0.9rem;line-height:1.7"></div>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchDetailTab('cast',this)">🎭 Distribuție</button>
+                <button class="tab-btn" onclick="switchDetailTab('versiuni',this)">📀 Versiuni</button>
+                <button class="tab-btn" onclick="switchDetailTab('recenziiFilm',this)">✍️ Recenzii</button>
+            </div>
+            <div class="tab-pane active" id="detailTabCast">
+                <div id="castList" class="loading"><div class="spinner"></div> Se încarcă...</div>
+            </div>
+            <div class="tab-pane" id="detailTabVersiuni">
+                <div id="versiuniList" class="loading"><div class="spinner"></div> Se încarcă...</div>
+            </div>
+            <div class="tab-pane" id="detailTabRecenziiFilm">
+                <div id="filmRecenziiList" class="loading"><div class="spinner"></div> Se încarcă...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ACTOR DETAIL OVERLAY -->
+<div class="detail-overlay" id="actorDetailOverlay">
+    <div class="detail-panel" style="max-width:680px;">
+        <div class="detail-header">
+            <div>
+                <h2 id="actorDetailNume" style="color:var(--gold)">Actor</h2>
+                <div id="actorDetailSub" style="color:var(--text-muted);font-size:0.85rem;margin-top:4px"></div>
+            </div>
+            <button class="close-btn" onclick="closeActorDetail()">✕</button>
+        </div>
+        <div class="detail-body">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchActorTab('filme',this)">🎬 Filmografie</button>
+                <button class="tab-btn" onclick="switchActorTab('recenzii',this)">✍️ Recenzii</button>
+            </div>
+            <div class="tab-pane active" id="actorTabFilme">
+                <div id="actorFilmsResult" class="loading"><div class="spinner"></div> Se încarcă...</div>
+            </div>
+            <div class="tab-pane" id="actorTabRecenzii">
+                <div id="actorRecenziiResult" class="loading"><div class="spinner"></div> Se încarcă...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL VIZUALIZARE -->
+<div class="detail-overlay" id="vizualizareOverlay" style="z-index:300;">
+    <div class="viz-modal-panel">
+        <div class="viz-modal-header">
+            <div>
+                <h2 style="color:var(--gold);font-size:1.2rem;">▶️ Înregistrează vizualizare</h2>
+                <div style="color:var(--text-muted);font-size:0.8rem;margin-top:3px;">Completează detaliile sesiunii tale</div>
+            </div>
+            <button class="close-btn" onclick="closeVizualizareModal()">✕</button>
+        </div>
+        <div class="viz-modal-body">
+            <div class="viz-film-info">
+                <div class="viz-film-icon">🎬</div>
+                <div>
+                    <div class="viz-film-title" id="vizModalFilmTitlu">—</div>
+                    <div class="viz-versiune-name" id="vizModalVersiuneNume">—</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <label>⏱ Cât ai vizionat? (minute)</label>
+                <input type="number" id="vizDurata" min="0" placeholder="ex: 90" style="font-size:1.1rem;padding:11px 14px;" />
+            </div>
+            <div class="form-row">
+                <label>🏁 Ai terminat filmul?</label>
+                <div class="stare-toggle">
+                    <button class="stare-btn" id="btnStareNu" onclick="setStareFinalizata(false)">❌ Nu, am abandonat</button>
+                    <button class="stare-btn" id="btnSfareDa" onclick="setStareFinalizata(true)">✅ Da, am terminat</button>
+                </div>
+                <div id="stareHint" style="font-size:0.75rem;color:var(--text-dim);margin-top:6px;">Selectează o opțiune</div>
+            </div>
+            <button class="btn btn-gold btn-block mt-16" onclick="submitVizualizare()" style="font-size:0.95rem;padding:12px;">Salvează vizualizarea</button>
+        </div>
+    </div>
+</div>
+
+<!-- APP LAYOUT -->
+<div class="app-wrap">
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <span class="logo-mark">🎬 CineVault</span>
+            <span class="logo-sub">Film Platform Admin</span>
+        </div>
+        <div class="sidebar-nav">
+            <div class="nav-section-title">Principal</div>
+            <div class="nav-item active" onclick="goTo('filme',this)"><span class="icon">🎞️</span> Filme</div>
+            <div class="nav-section-title">Catalog</div>
+            <div class="nav-item" onclick="goTo('actori',this)"><span class="icon">🎭</span> Actori</div>
+            <div class="nav-item" onclick="goTo('recenzii',this)"><span class="icon">✍️</span> Recenzii</div>
+            <div class="nav-section-title">Utilizatori</div>
+            <div class="nav-item" onclick="goTo('client',this)"><span class="icon">👤</span> Client</div>
+            <div class="nav-section-title">Analiză</div>
+            <div class="nav-item" onclick="goTo('sentiment',this)"><span class="icon">🧠</span> Sentiment</div>
+            <div class="nav-section-title">Avansat</div>
+            <div class="nav-item" onclick="goTo('predictii',this)"><span class="icon">📅</span> Predicții</div>
+            <div class="nav-item" onclick="goTo('grupuri',this)"><span class="icon">👥</span> Grupuri</div>
+        </div>
+        <div class="sidebar-footer">
+            Spring Boot · Postgres DB
+            <button class="btn-logout" onclick="logout()"><span>🚪</span> Deconectare</button>
+        </div>
+    </nav>
+
+    <div class="main">
+        <div class="topbar">
+            <span class="topbar-title" id="topbarTitle">Filme</span>
+
+        </div>
+
+        <div class="page-content">
+
+
+            <!-- ═══════════ FILME ═══════════ -->
+            <div class="page active" id="page-filme">
+                <div class="page-header"><h2>Filme</h2><p>Catalogul complet de filme disponibile pe platformă</p></div>
+                <div class="search-bar">
+                    <input type="text" id="filmSearchInput" placeholder="Caută după titlu..." onkeydown="if(event.key==='Enter')searchFilme()" />
+                    <select id="categorySelect" class="btn btn-outline" style="height:42px;background:#1a1a1a;color:gold;border:1px solid gold;border-radius:4px;padding:0 10px;">
+                        <option value="">Categorie</option>
+                        <option value="Actiune">Actiune</option>
+                        <option value="Animatie">Animatie</option>
+                        <option value="Drama">Drama</option>
+                        <option value="Horror">Horror</option>
+                        <option value="SF">SF</option>
+                        <option value="Thriller">Thriller</option>
+                        <option value="Romance">Romance</option>
+                        <option value="Crime">Crime</option>
+                    </select>
+                    <button class="btn btn-gold" onclick="searchFilme()">🔍 Caută</button>
+                    <button class="btn btn-outline" onclick="loadFilme()">Toate</button>
+                </div>
+                <div id="filmeGrid" class="cards-grid">
+                    <div class="loading" style="grid-column:1/-1"><div class="spinner"></div> Se încarcă filmele...</div>
+                </div>
+            </div>
+
+            <!-- ═══════════ ACTORI ═══════════ -->
+            <div class="page" id="page-actori">
+                <div class="page-header"><h2>Actori</h2><p>Caută actori sau vizualizează distribuția unui film</p></div>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('actori','search',this)">🔍 Caută actor</button>
+                    <button class="tab-btn" onclick="switchTab('actori','byFilm',this)">🎬 Pe film</button>
+                </div>
+                <div class="tab-pane active" id="actori-search">
+                    <div class="search-bar">
+                        <input type="text" id="actorSearchInput" placeholder="Nume scenă, prenume sau familie..." onkeydown="if(event.key==='Enter')searchActori()" />
+                        <button class="btn btn-gold" onclick="searchActori()">🔍 Caută</button>
+                    </div>
+                    <div id="actoriResults"></div>
+                </div>
+                <div class="tab-pane" id="actori-byFilm">
+                    <div class="search-bar">
+                        <input type="text" id="actorFilmTitlu" placeholder="Introduceti titlul filmului..." />
+                        <button class="btn btn-gold" onclick="loadActoriFilm()">Afișează Distribuția</button>
+                    </div>
+                    <div id="actoriFilmResults"></div>
+                </div>
+            </div>
+
+            <!-- ═══════════ RECENZII ═══════════ -->
+            <div class="page" id="page-recenzii">
+                <div class="page-header"><h2>Recenzii</h2><p>Adaugă recenzii și analizează sentimentul utilizatorilor</p></div>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('recenzii','addFilm',this)">➕ Recenzie Film</button>
+                    <button class="tab-btn" onclick="switchTab('recenzii','addActor',this)">🎭 Recenzie Actor</button>
+                    <button class="tab-btn" onclick="switchTab('recenzii','list',this)">📋 Listă recenzii</button>
+                    <button class="tab-btn" onclick="switchTab('recenzii','analyze',this)">🧠 Analiză rapidă</button>
+                </div>
+                <div class="tab-pane active" id="recenzii-addFilm">
+                    <div class="form-card">
+                        <h3 style="margin-bottom:20px;color:var(--gold)">Recenzie film nou</h3>
+                        <div class="form-row"><label>Titlu Film</label><input type="text" id="recNumeFilm" placeholder="ex: Inception, Titanic..." /></div>
+                        <div class="form-row"><label>Vot (1-10)</label><input type="number" id="recVot" min="1" max="10" placeholder="ex: 8" /></div>
+                        <div class="form-row"><label>Comentariu</label><textarea id="recComentariu" placeholder="Scrie impresiile tale despre film..."></textarea></div>
+                        <div class="form-row">
+                            <label>Caracterizări</label>
+                            <div class="chips" id="recChips">
+                                <span class="chip" onclick="toggleChip(this)" data-val="mi-a placut">👍 Mi-a plăcut</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="nu mi-a placut">👎 Nu mi-a plăcut</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="interesant">🤔 Interesant</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="emotionant">🥹 Emoționant</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="plictisitor">😴 Plictisitor</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="as recomanda">⭐ Aș recomanda</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="as mai viziona">🔁 Aș mai viziona</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="actor principal apreciat">🏆 Actor apreciat</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="scenariu slab">📝 Scenariu slab</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-gold btn-block mt-16" onclick="submitRecenzie()">Adaugă recenzia</button>
+                    </div>
+                </div>
+                <div class="tab-pane" id="recenzii-addActor">
+                    <div class="form-card">
+                        <h3 style="margin-bottom:20px;color:var(--gold)">Recenzie actor nou</h3>
+                        <div class="grid-2">
+                            <div class="form-row">
+                                <label>Prenume actor</label>
+                                <input type="text" id="recActorPrenume" placeholder="ex: Robert" />
+                            </div>
+                            <div class="form-row">
+                                <label>Nume familie actor</label>
+                                <input type="text" id="recActorNume" placeholder="ex: De Niro" />
+                            </div>
+                        </div>
+                        <div class="form-row"><label>Comentariu prestație</label><textarea id="recActorComentariu" placeholder="Scrie impresiile tale despre prestația actorului..."></textarea></div>
+                        <div class="form-row">
+                            <label>Caracterizări prestație</label>
+                            <div class="chips" id="recActorChips">
+                                <span class="chip" onclick="toggleChip(this)" data-val="prestatie excelenta">🏆 Prestație excelentă</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="acting natural">🎭 Acting natural</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="emotionant">🥹 Emoționant</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="convingator">💯 Convingător</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="neconvingator">😕 Neconvingător</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="supraestimat">🙄 Supraestimat</span>
+                                <span class="chip" onclick="toggleChip(this)" data-val="as recomanda actorul">⭐ Aș recomanda actorul</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-gold btn-block mt-16" onclick="submitRecenzieActor()">Adaugă recenzia actorului</button>
+                    </div>
+                </div>
+                <div class="tab-pane" id="recenzii-list">
+                    <div class="search-bar">
+                        <select id="sentimentFilter" style="padding:9px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-sans);font-size:0.9rem;outline:none;">
+                            <option value="pozitiv">😊 Pozitiv</option>
+                            <option value="negativ">😞 Negativ</option>
+                            <option value="neutru">😐 Neutru</option>
+                        </select>
+                        <button class="btn btn-gold" onclick="loadRecenziiSentiment()">Filtrează</button>
+                    </div>
+                    <div id="recenziiList"></div>
+                </div>
+                <div class="tab-pane" id="recenzii-analyze">
+                    <div class="form-card">
+                        <h3 style="margin-bottom:16px;color:var(--gold)">Analiză rapidă de text</h3>
+                        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px">Introdu orice text și sistemul va determina sentimentul dominant.</p>
+                        <div class="form-row"><label>Text de analizat</label><textarea id="analyzeText" placeholder="Ex: Filmul a fost extraordinar..." style="min-height:100px"></textarea></div>
+                        <button class="btn btn-gold" onclick="analyzeText()">🧠 Analizează</button>
+                        <div class="analyze-result" id="analyzeResult">
+                            <div class="analyze-emoji" id="analyzeEmoji">😐</div>
+                            <div class="analyze-label" id="analyzeLabel">Sentiment detectat</div>
+                            <div id="analyzeDetail" style="color:var(--text-muted);font-size:0.85rem;margin-top:6px"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════ CLIENT ═══════════ -->
+            <div class="page" id="page-client">
+                <div class="page-header">
+                    <h2>Contul meu</h2>
+                    <p>Profilul tău, istoricul vizualizărilor și recenziile tale</p>
+                </div>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('client','profil',this)">👤 Profil</button>
+                    <button class="tab-btn" onclick="switchTab('client','vizualizari',this);loadClientVizualizari()">▶️ Vizualizările mele</button>
+                    <button class="tab-btn" onclick="switchTab('client','recenzii',this);loadClientRecenzii()">✍️ Recenziile mele</button>
+                </div>
+
+                <!-- Profil tab -->
+                <div class="tab-pane active" id="client-profil">
+                    <div id="clientProfilContent">
+                        <div class="loading"><div class="spinner"></div> Se încarcă profilul...</div>
+                    </div>
+                </div>
+
+                <!-- Vizualizari proprii -->
+                <div class="tab-pane" id="client-vizualizari">
+                    <div id="clientVizualizariList">
+                        <div class="loading"><div class="spinner"></div> Se încarcă...</div>
+                    </div>
+                </div>
+
+                <!-- Recenzii proprii -->
+                <div class="tab-pane" id="client-recenzii">
+                    <div id="clientRecenziiList">
+                        <div class="loading"><div class="spinner"></div> Se încarcă...</div>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="client-recomandari">
+                    <div id="clientRecomandariList">
+                        <div class="loading"><div class="spinner"></div> Se încarcă...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════ SENTIMENT ═══════════ -->
+            <div class="page" id="page-sentiment">
+                <div class="page-header"><h2>Analiză Sentiment</h2><p>Sentimentul mediu calculat din recenzii — pe film sau pe actor</p></div>
+                <div style="display:flex;gap:20px;flex-wrap:wrap;">
+                    <div class="sentiment-card">
+                        <h3>🎬 Sentiment Film</h3>
+                        <p>Caută un film după titlu și afișează sentimentul mediu calculat din toate recenziile sale.</p>
+                        <div class="form-row"><label>Titlu film</label><input type="text" id="sentFilmTitlu" placeholder="ex: Inception" onkeydown="if(event.key==='Enter')loadSentimentFilm()" /></div>
+                        <button class="btn btn-gold" onclick="loadSentimentFilm()">Analizează</button>
+                        <div class="sent-result-box" id="sentFilmResult">
+                            <div class="sent-result-emoji" id="sentFilmEmoji">🎬</div>
+                            <div class="sent-result-label" id="sentFilmLabel">—</div>
+                            <div class="sent-result-detail" id="sentFilmDetail"></div>
+                            <div class="sent-result-bars" id="sentFilmBars"></div>
+                        </div>
+                    </div>
+                    <div class="sentiment-card">
+                        <h3>🎭 Sentiment Actor</h3>
+                        <p>Introdu numele actorului și afișează sentimentul mediu al recenziilor despre el.</p>
+
+                        <!-- ✅ flex în loc de grid-2 ca să nu se rupă -->
+                        <div style="display:flex;gap:10px;margin-bottom:18px;">
+                            <div class="form-row" style="flex:1;margin-bottom:0;">
+                                <label>Prenume</label>
+                                <input type="text" id="sentActorPrenume" placeholder="ex: Robert" />
+                            </div>
+                            <div class="form-row" style="flex:1;margin-bottom:0;">
+                                <label>Nume familie</label>
+                                <input type="text" id="sentActorNumeFamilie" placeholder="ex: De Niro" />
+                            </div>
+                        </div>
+
+                        <button class="btn btn-gold" onclick="loadSentimentActorNume()">Analizează</button>
+                        <div class="sent-result-box" id="sentActorResult">
+                            <div class="sent-result-emoji" id="sentActorEmoji">🎭</div>
+                            <div class="sent-result-label" id="sentActorLabel">—</div>
+                            <div class="sent-result-detail" id="sentActorDetail"></div>
+                            <div class="sent-result-bars" id="sentActorBars"></div>
+                        </div>
+                    </div>
+                    <div class="sentiment-card">
+                        <h3>🎞️ Sentiment Categorie</h3>
+                        <p>Selectează o categorie și afișează sentimentul dominant din toate recenziile filmelor din acea categorie.</p>
+                        <div class="form-row">
+                            <label>Categorie film</label>
+                            <select id="sentCategorieSelect" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-family:var(--font-sans);font-size:0.9rem;outline:none;">
+                                <option value="">— Selectează categoria —</option>
+                                <option value="Actiune">Acțiune</option>
+                                <option value="Animatie">Animație</option>
+                                <option value="Drama">Dramă</option>
+                                <option value="Horror">Horror</option>
+                                <option value="SF">SF</option>
+                                <option value="Thriller">Thriller</option>
+                                <option value="Romance">Romance</option>
+                                <option value="Crime">Crime</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-gold" onclick="loadSentimentCategorie()">Analizează</button>
+                        <div class="sent-result-box" id="sentCategorieResult">
+                            <div class="sent-result-emoji" id="sentCategorieEmoji">🎞️</div>
+                            <div class="sent-result-label" id="sentCategorieLabel">—</div>
+                            <div class="sent-result-detail" id="sentCategorieDetail"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════ PREDICȚII SEZONIERE ═══════════ -->
+            <div class="page" id="page-predictii">
+                <div class="page-header">
+                    <h2>Predicții Sezoniere</h2>
+                    <p>Categoriile și filmele cele mai populare în fiecare lună</p>
+                </div>
+                <button class="btn btn-gold" onclick="loadPredictii()" style="margin-bottom:20px;">🔄 Încarcă predicțiile</button>
+                <div id="predictiiContent"></div>
+            </div>
+
+            <!-- ═══════════ GRUPURI CLIENȚI ═══════════ -->
+            <div class="page" id="page-grupuri">
+                <div class="page-header">
+                    <h2>Grupuri Clienți</h2>
+                    <p>Clienții grupați după categoria dominantă vizualizată și sentimentul recenziilor</p>
+                </div>
+                <button class="btn btn-gold" onclick="loadGrupuri()" style="margin-bottom:20px;">🔄 Încarcă grupurile</button>
+                <div id="grupuriContent"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // ═══ AUTH ═══
+    function logout() {
+        localStorage.removeItem('cv_token');
+        localStorage.removeItem('cv_email');
+        window.location.href = 'login.html';
+    }
+    document.addEventListener('DOMContentLoaded', () => {
+        const token = localStorage.getItem('cv_token');
+        if (!token) window.location.href = 'login.html';
+    });
+
+    const API = 'http://localhost:8081/api';
+
+    // ═══ UTILS ═══
+    function toast(msg, type = 'info') {
+        const tc = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.textContent = msg;
+        tc.appendChild(t);
+        setTimeout(() => { t.style.animation = 'slideOut 0.3s ease forwards'; setTimeout(() => t.remove(), 310); }, 3200);
+    }
+
+   async function apiFetch(path, opts = {}) {
+    const token = localStorage.getItem('cv_token');
+    const headers = { 'Content-Type': 'application/json', ...opts.headers };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    try {
+        const r = await fetch(API + path, { ...opts, headers });
+        if (r.status === 401) {
+            localStorage.removeItem('cv_token');
+            // ✅ Redirecționează DOAR dacă nu ești deja pe pagina de login
+            if (!window.location.pathname.endsWith('login.html')) {
+                window.location.href = 'login.html';
+            }
+            return;
+        }
+        if (!r.ok) { const txt = await r.text(); throw new Error(txt || `HTTP ${r.status}`); }
+        const ct = r.headers.get('content-type') || '';
+        return ct.includes('application/json') ? r.json() : r.text();
+    } catch (e) { throw e; }
+}
+
+    function loading(id) { document.getElementById(id).innerHTML = `<div class="loading"><div class="spinner"></div> Se încarcă...</div>`; }
+    function emptyState(id, icon = '📭', msg = 'Niciun rezultat găsit.') { document.getElementById(id).innerHTML = `<div class="empty-state"><div class="icon">${icon}</div><p>${msg}</p></div>`; }
+    function escHtml(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function filmLabel(v) { return v.titluFilm || v.film || (v.idFilm ? `Film #${v.idFilm}` : 'Film necunoscut'); }
+
+    // ═══ NAVIGATION ═══
+    const PAGE_TITLES = { filme: 'Filme', actori: 'Actori', recenzii: 'Recenzii', client: 'Contul meu', sentiment: 'Analiză Sentiment', predictii: 'Predicții Sezoniere', grupuri: 'Grupuri Clienți' };
+
+
+    function goTo(name, el) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('page-' + name).classList.add('active');
+        el.classList.add('active');
+        document.getElementById('topbarTitle').textContent = PAGE_TITLES[name] || name;
+        if (PAGE_LOADERS[name]) PAGE_LOADERS[name]();
+    }
+
+    // ═══ TABS ═══
+    function switchTab(section, pane, btn) {
+        document.querySelectorAll(`#page-${section} .tab-pane`).forEach(p => p.classList.remove('active'));
+        document.querySelectorAll(`#page-${section} .tab-btn`).forEach(b => b.classList.remove('active'));
+        document.getElementById(`${section}-${pane}`).classList.add('active');
+        btn.classList.add('active');
+    }
+    function switchDetailTab(pane, btn) {
+        document.querySelectorAll('.detail-panel .tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('#filmDetailPanel .tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('detailTab' + pane.charAt(0).toUpperCase() + pane.slice(1)).classList.add('active');
+        btn.classList.add('active');
+    }
+    function switchActorTab(pane, btn) {
+        document.querySelectorAll('#actorDetailOverlay .tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('#actorDetailOverlay .tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('actorTab' + pane.charAt(0).toUpperCase() + pane.slice(1)).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // ═══ CHIPS ═══
+    function toggleChip(el) { el.classList.toggle('selected'); }
+    function getSelectedChips(containerId = 'recChips') { return [...document.querySelectorAll(`#${containerId} .chip.selected`)].map(c => c.dataset.val).join(','); }
+
+    // ═══ DASHBOARD ═══
+    async function loadDashboard() {
+        try {
+            const filme = await apiFetch('/filme');
+            document.getElementById('statFilme').textContent = filme.length;
+            const recentEl = document.getElementById('dashRecentFilme');
+            if (!filme.length) { recentEl.innerHTML = '<div class="empty-state"><div class="icon">🎞️</div><p>Niciun film găsit.</p></div>'; }
+            else { recentEl.innerHTML = filme.slice(0,6).map((f,i) => `<div class="dash-film-row"><div class="dash-film-num">${i+1}</div><div class="dash-film-title">${escHtml(f.titlu||f.title||'Film')}</div><div class="dash-film-stat">${f.rating?'★ '+f.rating:''}</div></div>`).join(''); }
+        } catch(e) { document.getElementById('statFilme').textContent='?'; document.getElementById('dashRecentFilme').innerHTML=`<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(e.message)}</p></div>`; }
+        try {
+            const aband = await apiFetch('/vizualizari/abandonate');
+            document.getElementById('statAband').textContent = aband.length;
+            document.getElementById('statViz').textContent = '—';
+            document.getElementById('statRec').textContent = '—';
+            const abEl = document.getElementById('dashAbandonate');
+            if (!aband.length) { abEl.innerHTML='<div class="empty-state"><div class="icon">✅</div><p>Nicio vizualizare abandonată.</p></div>'; }
+            else { abEl.innerHTML = aband.slice(0,5).map(v=>`<div class="dash-film-row"><div class="dash-film-num">⚠</div><div class="dash-film-title">${escHtml(filmLabel(v))}</div><div class="dash-film-stat" style="color:var(--red)">${escHtml(v.dataVizualizare||v.data||'')}</div></div>`).join(''); }
+        } catch(e) { document.getElementById('dashAbandonate').innerHTML=`<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(e.message)}</p></div>`; }
+    }
+
+    // ═══ FILME ═══
+    async function loadFilme() {
+        const si = document.getElementById('filmSearchInput'); const cs = document.getElementById('categorySelect');
+        if (si) si.value=''; if (cs) cs.selectedIndex=0;
+        loading('filmeGrid');
+        try { renderFilme(await apiFetch('/filme')); }
+        catch(e) { document.getElementById('filmeGrid').innerHTML=`<div class="loading" style="grid-column:1/-1;color:var(--red)">⚠️ ${escHtml(e.message)}</div>`; toast('Eroare la încărcarea filmelor: '+e.message,'error'); }
+    }
+    async function searchFilme() {
+        const t = document.getElementById('filmSearchInput').value.trim();
+        const c = document.getElementById('categorySelect').value;
+        loading('filmeGrid');
+        try { renderFilme(await apiFetch(`/filme/cautare?text=${encodeURIComponent(t)}&categorie=${encodeURIComponent(c)}`)); }
+        catch(e) { toast('Eroare la căutare: '+e.message,'error'); document.getElementById('filmeGrid').innerHTML='<div class="empty-state"><p>Eroare la încărcare.</p></div>'; }
+    }
+    function renderFilme(filme) {
+        const el = document.getElementById('filmeGrid');
+        if (!filme||!filme.length) { el.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">🎞️</div><p>Niciun film găsit.</p></div>'; return; }
+        const posters=['🎬','🎥','🎞️','🍿','🎦','🎭'];
+        el.innerHTML = filme.map((f,i) => {
+            const title=escHtml(f.titlu||f.title||'Film'), cat=escHtml(f.categorie||f.category||''), year=f.dataLansarii?f.dataLansarii.substring(0,4):(f.an||'');
+            const rv=f.ratingMediu||f.rating; const rating=(rv&&rv>0)?rv.toFixed(1):'—';
+            return `<div class="film-card" onclick="openFilmDetail(${f.idFilm||f.id||i})"><div class="film-card-poster">${posters[i%posters.length]}<span class="rating-badge">★ ${rating}</span></div><div class="film-card-body"><div class="film-card-title">${title}</div><div class="film-card-meta">${cat?`<span class="tag tag-gold">${cat}</span>`:''} ${year?`<span style="color:var(--text-dim)">${year}</span>`:''}</div></div></div>`;
+        }).join('');
+    }
+
+    // ═══ FILM DETAIL ═══
+    let currentFilmTitlu = '', currentFilmId = null;
+    async function openFilmDetail(id) {
+        const idFilm = Number(id); if (isNaN(idFilm)) return;
+        currentFilmId = idFilm;
+        document.getElementById('filmDetailOverlay').classList.add('open');
+        loading('castList'); loading('versiuniList'); loading('filmRecenziiList');
+        try {
+            const f = await apiFetch('/filme/'+idFilm);
+            currentFilmTitlu = f.titlu||f.title||'';
+            document.getElementById('detailTitle').textContent = currentFilmTitlu||`Film #${idFilm}`;
+            document.getElementById('detailMeta').textContent = [f.categorie||f.category||'', f.dataLansarii?f.dataLansarii.substring(0,4):(f.an||'')].filter(Boolean).join(' · ');
+            document.getElementById('detailDesc').textContent = f.descriere||f.description||'';
+        } catch(e) { currentFilmTitlu=''; document.getElementById('detailTitle').textContent=`Film #${idFilm}`; }
+        apiFetch('/distributie/film/'+idFilm).then(renderCast).catch(err=>{ document.getElementById('castList').innerHTML=`<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(err.message)}</p></div>`; });
+        apiFetch('/versiuni/film/'+idFilm).then(renderVersiuni).catch(err=>{ document.getElementById('versiuniList').innerHTML=`<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(err.message)}</p></div>`; });
+        if (currentFilmTitlu) {
+            apiFetch('/recenzii/titlu?titlu='+encodeURIComponent(currentFilmTitlu)).then(renderFilmRecenzii).catch(()=>{ document.getElementById('filmRecenziiList').innerHTML='<div class="empty-state"><div class="icon">✍️</div><p>Nicio recenzie.</p></div>'; });
+        } else { document.getElementById('filmRecenziiList').innerHTML='<div class="empty-state"><div class="icon">✍️</div><p>Titlul filmului nu a putut fi determinat.</p></div>'; }
+    }
+    function closeFilmDetail() { document.getElementById('filmDetailOverlay').classList.remove('open'); }
+
+    function renderFilmRecenzii(recenzii) {
+    const el = document.getElementById('filmRecenziiList');
+    if (!recenzii || !recenzii.length) {
+        el.innerHTML = '<div class="empty-state"><div class="icon">✍️</div><p>Nicio recenzie pentru acest film.</p></div>';
+        return;
+    }
+    el.innerHTML = '<div class="detail-recenzii-list">' + recenzii.map(r => {
+        // ← verifică ambele variante de cheie
+        const autor   = escHtml(r.numeClient || r.nume_client || `Client #${r.idClient || r.id_client || ''}`);
+        const vot     = r.vot || r.rating || '';
+        const text    = escHtml(r.comentariu || r.text || '');
+        const sent    = escHtml((r.sentiment || r.sentimentDetectat || '').toLowerCase());
+        const sentCls = sent.includes('pozitiv') ? 'tag-green' : sent.includes('negativ') ? 'tag-red' : 'tag-gold';
+        const sentIco = sent.includes('pozitiv') ? '😊' : sent.includes('negativ') ? '😞' : '😐';
+        const car     = escHtml(r.caracterizari || r.optiune_predefinita || r.optiunePredefinita || '');
+
+        return `<div class="review-card">
+            <div class="review-header">
+                <span class="review-author">${autor}</span>
+                <div style="display:flex;gap:8px;align-items:center">
+                    ${vot ? `<span class="tag tag-gold">★ ${vot}</span>` : ''}
+                    ${sent ? `<span class="tag ${sentCls}">${sentIco} ${sent}</span>` : ''}
+                </div>
+            </div>
+            ${text ? `<div class="review-text">${text}</div>` : ''}
+            ${car  ? `<div class="chips" style="margin-top:8px">
+                ${car.split(',').map(c => `<span class="chip selected">${escHtml(c.trim())}</span>`).join('')}
+            </div>` : ''}
+        </div>`;
+    }).join('') + '</div>';
+}
+
+    // ═══ CAST RENDER ═══
+    function renderCast(cast) {
+        const el = document.getElementById('castList');
+        if (!cast||!cast.length) { el.innerHTML='<div class="empty-state"><div class="icon">🎭</div><p>Nicio distribuție înregistrată.</p></div>'; return; }
+        el.innerHTML = cast.map(d => {
+            const numeScRaw=d.numeScena||'', numeSc=escHtml(numeScRaw), prenume=escHtml(d.prenume||''), familie=escHtml(d.numeFamilie||'');
+            const rol=escHtml(d.rol||''), coment=escHtml(d.observatiiPrestatie||''), actorId=d.idActor||0;
+            const safeNume=numeScRaw.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            const areNumeReal=!!(prenume&&familie), numeAfisat=areNumeReal?`${prenume} ${familie}`:numeSc;
+            return `<div class="actor-card" onclick="openActorDetail(${actorId},'${safeNume}')">
+                <div style="font-size:1.6rem;flex-shrink:0;">🎭</div>
+                <div style="min-width:0;">
+                    <div style="font-weight:500;color:var(--text);font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${numeAfisat}</div>
+                    ${rol?`<div style="font-size:0.75rem;color:var(--gold);margin-top:2px;">🎬 ${rol}</div>`:''}
+                    ${coment?`<div style="font-size:0.72rem;color:var(--text-dim);margin-top:3px;font-style:italic;">"${coment}"</div>`:''}
+                    <div style="font-size:0.7rem;color:var(--blue);margin-top:4px;">👆 Click pentru profil</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ═══ VERSIUNI RENDER ═══
+    function renderVersiuni(versiuni) {
+        const el = document.getElementById('versiuniList');
+        if (!versiuni||!versiuni.length) { el.innerHTML='<div class="empty-state"><div class="icon">📀</div><p>Nicio versiune disponibilă.</p></div>'; return; }
+        const icons={'4K':'🔷','HD':'🔵','SD':'⚪','subtitrat':'💬','dublat':'🔊'};
+        el.innerHTML = versiuni.map(v => {
+            const idVers=v.idVersiune||v.id||0, name=v.denumire||v.format||'Versiune', meta=[v.rezolutie,v.limba].filter(Boolean).join(' · ');
+            const icon=Object.entries(icons).find(([k])=>name.toUpperCase().includes(k.toUpperCase()))?.[1]||'📀';
+            const safeName=escHtml(name).replace(/'/g,"\\'");
+            return `<div class="versiune-card" onclick="openVizualizareModal(${idVers},'${safeName}')">
+                <div style="font-size:1.6rem;flex-shrink:0;">${icon}</div>
+                <div style="min-width:0;">
+                    <div style="font-weight:500;color:var(--text);font-size:0.9rem;">${escHtml(name)}</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${escHtml(meta)}</div>
+                    <div style="font-size:0.72rem;color:var(--gold);margin-top:3px;font-weight:500;">▶ Vizionează</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // ═══ MODAL VIZUALIZARE ═══
+    let currentVizVersiuneId=null, stareFinalizataVal=null;
+    function openVizualizareModal(idVersiune, numeVersiune) {
+        currentVizVersiuneId=idVersiune; stareFinalizataVal=null;
+        document.getElementById('vizModalFilmTitlu').textContent=currentFilmTitlu||'Film';
+        document.getElementById('vizModalVersiuneNume').textContent=numeVersiune||'Versiune';
+        document.getElementById('vizDurata').value='';
+        document.getElementById('btnStareNu').className='stare-btn'; document.getElementById('btnSfareDa').className='stare-btn';
+        document.getElementById('stareHint').textContent='Selectează o opțiune';
+        document.getElementById('vizualizareOverlay').classList.add('open');
+    }
+    function closeVizualizareModal() { document.getElementById('vizualizareOverlay').classList.remove('open'); }
+    function setStareFinalizata(val) {
+        stareFinalizataVal=val;
+        if (val) { document.getElementById('btnSfareDa').className='stare-btn active-da'; document.getElementById('btnStareNu').className='stare-btn'; document.getElementById('stareHint').textContent='✅ Vizualizare completă înregistrată'; }
+        else { document.getElementById('btnStareNu').className='stare-btn active-nu'; document.getElementById('btnSfareDa').className='stare-btn'; document.getElementById('stareHint').textContent='❌ Vizualizare parțială / abandonată'; }
+    }
+    async function submitVizualizare() {
+        const durata=parseInt(document.getElementById('vizDurata').value);
+        if (isNaN(durata)||durata<0) { toast('Introdu un număr valid de minute (≥ 0).','error'); return; }
+        if (stareFinalizataVal===null) { toast('Selectează dacă ai terminat sau nu filmul.','error'); return; }
+        try {
+            const msg=await apiFetch('/vizualizari',{method:'POST',body:JSON.stringify({idVersiune:currentVizVersiuneId,durataVizionataMinute:durata,stareFinalizata:stareFinalizataVal})});
+            toast(typeof msg==='string'?msg:'Vizualizare salvată cu succes!','success'); closeVizualizareModal();
+        } catch(e) { toast('Eroare: '+e.message,'error'); }
+    }
+
+    // ═══ ACTORI ═══
+    async function searchActori() {
+        const q=document.getElementById('actorSearchInput').value.trim();
+        if (!q) { toast('Introdu un termen de căutare.','error'); return; }
+        loading('actoriResults');
+        try { renderActori('actoriResults', await apiFetch('/actori/cautare?nume='+encodeURIComponent(q))); }
+        catch(e) { toast('Eroare: '+e.message,'error'); emptyState('actoriResults'); }
+    }
+    async function loadActoriFilm() {
+        const titluFilm=document.getElementById('actorFilmTitlu').value.trim();
+        if (!titluFilm) { toast('Vă rugăm să introduceți un titlu de film.','info'); return; }
+        loading('actoriFilmResults');
+        try {
+            const actori=await apiFetch('/actori/film?text='+encodeURIComponent(titluFilm));
+            if (!actori.length) { document.getElementById('actoriFilmResults').innerHTML='<div class="empty-state"><p>Nu s-au găsit actori pentru acest film.</p></div>'; return; }
+            renderActori('actoriFilmResults', actori);
+        } catch(e) { toast('Eroare: '+e.message,'error'); document.getElementById('actoriFilmResults').innerHTML=`<p>${e.message}</p>`; }
+    }
+    function renderActori(containerId, actori) {
+        const el=document.getElementById(containerId);
+        if (!actori||!actori.length) { emptyState(containerId,'🎭','Niciun actor găsit.'); return; }
+        el.innerHTML=`<div style="display:grid;gap:10px;margin-top:4px">${actori.map(a=>{
+            const numeSc=escHtml(a.numeScenicScurt||a.numeScenic||a.numescenic||''), prenume=escHtml(a.prenume||''), familie=escHtml(a.numeFamilie||a.numedefamilie||'');
+            const nastere=a.dataNasterii?a.dataNasterii.substring(0,4):'', actorId=a.idActor||a.id||0;
+            const numeScRaw=a.numeScenicScurt||a.numeScenic||a.numescenic||(a.prenume+' '+(a.numeFamilie||''));
+            const safeNume=escHtml(numeScRaw).replace(/'/g,"\\'");
+            const areNumeReal=!!(prenume&&familie), numeAfisat=areNumeReal?`${prenume} ${familie}`:numeSc;
+            return `<div class="actor-card" onclick="openActorDetail(${actorId},'${safeNume}')">
+                <div style="font-size:1.6rem;">🎭</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:500;color:var(--text);font-size:0.9rem;">${numeAfisat}</div>
+                    ${areNumeReal&&numeSc?`<div style="font-size:0.75rem;color:var(--gold);">🎬 ${numeSc}${nastere?' · n. '+nastere:''}</div>`:''}
+                    ${!areNumeReal&&nastere?`<div style="font-size:0.75rem;color:var(--text-muted);">n. ${nastere}</div>`:''}
+                    <div style="font-size:0.7rem;color:var(--blue);margin-top:3px;">👆 Click pentru profil</div>
+                </div>
+                <span class="tag tag-gold">Actor</span>
+            </div>`;
+        }).join('')}</div>`;
+    }
+
+    // ═══ ACTOR DETAIL ═══
+    let currentActorId=null, currentActorNumeScena='';
+    async function openActorDetail(id, numeScena) {
+    currentActorId = id;
+    currentActorNumeScena = numeScena || '';
+
+    document.getElementById('actorDetailNume').textContent = numeScena || 'Actor';
+    document.getElementById('actorDetailSub').textContent = `ID: ${id}`;
+
+    document.querySelectorAll('#actorDetailOverlay .tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('#actorDetailOverlay .tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('actorTabFilme').classList.add('active');
+    document.querySelector('#actorDetailOverlay .tab-btn').classList.add('active');
+
+    loading('actorFilmsResult');
+    loading('actorRecenziiResult');
+    document.getElementById('actorDetailOverlay').classList.add('open');
+
+    // Filmografie — după numeScena sau id
+    const filmePath = numeScena && numeScena.trim()
+        ? '/actori/filme/cautare?actor=' + encodeURIComponent(numeScena.trim())
+        : '/actori/' + id + '/filme';
+
+    apiFetch(filmePath)
+        .then(renderActorFilms)
+        .catch(e => {
+            document.getElementById('actorFilmsResult').innerHTML =
+                `<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(e.message)}</p></div>`;
+        });
+
+    // Recenzii — după idActor
+    apiFetch('/recenzii/actor?idActor=' + id)
+        .then(renderActorRecenzii)
+        .catch(e => {
+            document.getElementById('actorRecenziiResult').innerHTML =
+                `<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(e.message)}</p></div>`;
+        });
+}
+    function closeActorDetail() { document.getElementById('actorDetailOverlay').classList.remove('open'); }
+    function renderActorFilms(filme) {
+        const el=document.getElementById('actorFilmsResult');
+        if (!filme||!filme.length) { el.innerHTML='<div class="empty-state"><div class="icon">🎬</div><p>Nicio filmografie înregistrată.</p></div>'; return; }
+        el.innerHTML=`<div class="actor-films-grid">`+filme.map(f=>{
+            const idFilm=f.id_film||f.idFilm||f.id, titlu=escHtml(f.titlu||'Film'), categorie=escHtml(f.categorie||'');
+            const an=f.data_lansarii?String(f.data_lansarii).substring(0,4):'', rol=escHtml(f.rol||'');
+            const rating=f.rating_mediu?`★ ${parseFloat(f.rating_mediu).toFixed(1)}`:'';
+            return `<div class="actor-film-card" onclick="closeActorDetail();openFilmDetail(${idFilm})">
+                <div class="af-title">🎬 ${titlu}</div>
+                <div class="af-meta">${categorie}${an?' · '+an:''} ${rating?`<span class="tag tag-gold" style="margin-left:4px">${rating}</span>`:''}</div>
+                ${rol?`<div class="af-rol">🎭 ${rol}</div>`:''}
+                <div style="font-size:0.7rem;color:var(--gold);margin-top:5px;">Click pentru detalii film</div>
+            </div>`;
+        }).join('')+`</div>`;
+    }
+    function renderActorRecenzii(recenzii) {
+    const el = document.getElementById('actorRecenziiResult');
+    if (!recenzii || !recenzii.length) {
+        el.innerHTML = '<div class="empty-state"><div class="icon">✍️</div><p>Nicio recenzie pentru acest actor.</p></div>';
+        return;
+    }
+    el.innerHTML = recenzii.map(r => {
+        const autor = escHtml(r.numeClient || `Client #${r.idClient || ''}`);
+        const text  = escHtml(r.comentariu || '');
+        const sent  = escHtml((r.sentimentDetectat || '').toLowerCase()); // ← fix aici
+        const car   = escHtml(r.optiunePredefinita || '');
+        const sentCls = sent.includes('pozitiv') ? 'tag-green' : sent.includes('negativ') ? 'tag-red' : 'tag-gold';
+        const sentIco = sent.includes('pozitiv') ? '😊' : sent.includes('negativ') ? '😞' : '😐';
+        return `
+            <div class="review-card">
+                <div class="review-header">
+                    <span class="review-author">${autor}</span>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        ${sent ? `<span class="tag ${sentCls}">${sentIco} ${sent}</span>` : ''}
+                    </div>
+                </div>
+                ${text ? `<div class="review-text">${text}</div>` : ''}
+                ${car ? `<div class="chips" style="margin-top:8px">
+                    ${car.split(',').map(c => `<span class="chip selected">${escHtml(c.trim())}</span>`).join('')}
+                </div>` : ''}
+            </div>`;
+    }).join('');
+}
+
+    // ═══ RECENZII ═══
+    async function submitRecenzie() {
+        const titluFilm=document.getElementById('recNumeFilm').value.trim(), vot=parseInt(document.getElementById('recVot').value);
+        const comentariu=document.getElementById('recComentariu').value.trim(), optiunePredefinita=getSelectedChips('recChips');
+        if (!titluFilm) { toast('Te rugăm să introduci numele filmului.','error'); return; }
+        if (isNaN(vot)||vot<1||vot>10) { toast('Votul trebuie să fie un număr între 1 și 10.','error'); return; }
+        try { toast(await apiFetch('/recenzii',{method:'POST',body:JSON.stringify({titluFilm,vot,comentariu,optiunePredefinita})})||'Recenzie adăugată!','success'); resetReviewForm(); }
+        catch(e) { toast('Eroare: '+e.message,'error'); }
+    }
+    async function submitRecenzieActor() {
+    const nume               = document.getElementById('recActorNume').value.trim();
+    const prenume            = document.getElementById('recActorPrenume').value.trim();
+    const comentariu         = document.getElementById('recActorComentariu').value.trim();
+    const optiunePredefinita = getSelectedChips('recActorChips');
+
+    if (!nume || !prenume) { toast('Te rugăm să introduci numele și prenumele actorului.', 'error'); return; }
+    if (!comentariu)       { toast('Te rugăm să scrii un comentariu.', 'error'); return; }
+
+    try {
+        const raspuns = await apiFetch('/recenzii/actor', {
+            method: 'POST',
+            body: JSON.stringify({ nume, prenume, comentariu, optiunePredefinita })
+        });
+        toast(raspuns || 'Recenzie actor adăugată!', 'success');
+        document.getElementById('recActorNume').value    = '';
+        document.getElementById('recActorPrenume').value = '';
+        document.getElementById('recActorComentariu').value = '';
+        document.querySelectorAll('#recActorChips .chip').forEach(c => c.classList.remove('selected'));
+    } catch(e) {
+        toast('Eroare: ' + e.message, 'error');
+    }
+}
+    function resetReviewForm() { ['recNumeFilm','recVot','recComentariu'].forEach(id=>document.getElementById(id).value=''); document.querySelectorAll('#recChips .chip').forEach(c=>c.classList.remove('selected')); }
+    async function loadRecenziiSentiment() {
+        const tip=document.getElementById('sentimentFilter').value; loading('recenziiList');
+        try { renderRecenzii(await apiFetch('/recenzii/sentiment?tip='+encodeURIComponent(tip)), tip); }
+        catch(e) { toast('Eroare: '+e.message,'error'); emptyState('recenziiList'); }
+    }
+    function renderRecenzii(recenzii, sentiment) {
+    const el = document.getElementById('recenziiList');
+    if (!recenzii || !recenzii.length) {
+        emptyState('recenziiList', '✍️', 'Nicio recenzie găsită pentru acest sentiment.');
+        return;
+    }
+    const sentColors = { pozitiv:'tag-green', negativ:'tag-red', neutru:'tag-gold' };
+    const sentIcons  = { pozitiv:'😊', negativ:'😞', neutru:'😐' };
+    const cls = sentColors[sentiment] || 'tag-gold';
+    const ico = sentIcons[sentiment]  || '😐';
+
+    el.innerHTML = recenzii.map(r => {
+        const autor  = escHtml(r.numeClient || `Client #${r.idClient || ''}`);
+        const isActor = !!r.numeActor && !r.titluFilm;
+        const target = escHtml(
+            r.titluFilm || r.numeActor ||
+            (r.idActor ? `Actor #${r.idActor}` : `Film #${r.idFilm || ''}`)
+        );
+        const label  = isActor ? '🎭 Actor:' : '🎬 Film:';
+        const text   = escHtml(r.comentariu || '');
+        const vot    = r.vot || '';
+        const car    = escHtml(r.optiunePredefinita || r.caracterizari || '');
+
+        return `
+            <div class="review-card">
+                <div class="review-header">
+                    <div>
+                        <span class="review-author">${autor}</span>
+                        <span style="color:var(--text-dim);font-size:0.8rem;margin-left:8px">
+                            → ${label} ${target}
+                        </span>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        ${vot ? `<span class="tag tag-gold">★ ${vot}</span>` : ''}
+                        <span class="tag ${cls}">${ico} ${sentiment}</span>
+                    </div>
+                </div>
+                ${text ? `<div class="review-text">${text}</div>` : ''}
+                ${car  ? `<div class="chips" style="margin-top:8px">
+                    ${car.split(',').map(c => `<span class="chip selected">${escHtml(c.trim())}</span>`).join('')}
+                </div>` : ''}
+            </div>`;
+    }).join('');
+}
+    async function analyzeText() {
+        const text=document.getElementById('analyzeText').value.trim();
+        if (!text) { toast('Introdu un text de analizat.','error'); return; }
+        try {
+            const result=await apiFetch('/recenzii/analiza-rapida',{method:'POST',body:JSON.stringify(text)});
+            const sentStr=typeof result==='string'?result.toLowerCase():'';
+            let emoji='😐',color='var(--gold)';
+            if (sentStr.includes('pozitiv')) { emoji='😊'; color='var(--green)'; } else if (sentStr.includes('negativ')) { emoji='😞'; color='var(--red)'; }
+            document.getElementById('analyzeEmoji').textContent=emoji;
+            document.getElementById('analyzeLabel').textContent=result; document.getElementById('analyzeLabel').style.color=color;
+            document.getElementById('analyzeDetail').textContent='Analiză bazată pe cuvinte-cheie și voturile înregistrate.';
+            document.getElementById('analyzeResult').classList.add('show');
+        } catch(e) { toast('Eroare la analiză: '+e.message,'error'); }
+    }
+
+    // ═══ CLIENT PROFIL ═══
+
+
+    // ═══ CLIENT VIZUALIZĂRI ═══
+    async function loadClientVizualizari() {
+    // 1. Verificăm dacă avem ID-ul clientului salvat în variabila globală
+    if (!window._clientId) {
+        await loadClientProfil();
+    }
+
+    const id = window._clientId;
+    const container = document.getElementById('clientVizualizariList');
+
+    if (!id) {
+        container.innerHTML = '<div class="empty-state">👤 Te rugăm să încarci profilul mai întâi.</div>';
+        return;
+    }
+
+    loading('clientVizualizariList');
+
+    try {
+        // 2. Apelăm API-ul (asigură-te că ruta în Controller este /api/vizualizari/istoric/{id})
+        const vizualizari = await apiFetch('/vizualizari/client/' + id);
+
+        if (!vizualizari || vizualizari.length === 0) {
+            emptyState('clientVizualizariList', '▶️', 'Nicio vizualizare înregistrată încă.');
+            return;
+        }
+
+        // 3. Construim tabelul
+        let html = `
+            <div class="table-wrap mt-16">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Film</th>
+                            <th>Versiune</th>
+                            <th>Data</th>
+                            <th>Durată</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        vizualizari.forEach(v => {
+            // Mapare câmpuri din entitatea Java (JSON camelCase)
+            // v.titluFilm corespunde cu private String titluFilm
+            // v.formatVersiune corespunde cu private String formatVersiune
+            const titlu = v.titluFilm || "Film necunoscut";
+            const versiune = v.formatVersiune || "Standard";
+
+            // Formatare dată (LocalDateTime din Java vine de obicei ca string ISO sau array)
+            let dataAfisata = '—';
+            if (v.dataVizualizarii) {
+                const d = new Date(v.dataVizualizarii);
+                dataAfisata = d.toLocaleDateString('ro-RO') + ' ' + d.toLocaleTimeString('ro-RO', {hour: '2-digit', minute:'2-digit'});
+            }
+
+            // Status Badge (stareFinalizata este Boolean în Java)
+            const statusTag = v.stareFinalizata ? 'tag-green' : 'tag-red';
+            const statusText = v.stareFinalizata ? 'Finalizată' : 'Abandonată';
+
+            html += `
+                <tr>
+                    <td style="color:var(--text); font-weight:500;">${escHtml(titlu)}</td>
+                    <td><span class="tag tag-gold">${escHtml(versiune)}</span></td>
+                    <td style="font-size:0.85rem;">${dataAfisata}</td>
+                    <td>${v.durataVizionataMinute || 0} min</td>
+                    <td><span class="tag ${statusTag}">${statusText}</span></td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.error("Eroare la istoricul vizualizărilor:", e);
+        container.innerHTML = `<div class="empty-state">⚠️ Eroare: ${escHtml(e.message)}</div>`;
+    }
+}
+
+   // ═══ CLIENT RECENZII ═══
+async function loadClientRecenzii() {
+    if (!window._clientId) await loadClientProfil();
+
+    const id = window._clientId;
+    const container = document.getElementById('clientRecenziiList');
+    if (!id) { container.innerHTML = '<div class="empty-state">👤 Profilul nu a putut fi identificat.</div>'; return; }
+
+    loading('clientRecenziiList');
+
+    try {
+        // Fetch ambele tipuri în paralel
+        const [recenziiFilme, recenziiActori] = await Promise.all([
+            apiFetch('/recenzii/client/' + id),
+            apiFetch('/recenzii/actor/client/' + id)
+        ]);
+
+        const filme  = (recenziiFilme  || []).map(r => ({ ...r, _tip: 'film'  }));
+        const actori = (recenziiActori || []).map(r => ({ ...r, _tip: 'actor' }));
+        const toate  = [...filme, ...actori];
+
+        if (!toate.length) { emptyState('clientRecenziiList', '✍️', 'Nu ai scris nicio recenzie încă.'); return; }
+
+        const total     = toate.length;
+        const pozitive  = toate.filter(r => (r.sentimentDetectat || '').toLowerCase().includes('pozitiv')).length;
+        const votFilme  = recenziiFilme.filter(r => r.vot).map(r => r.vot);
+        const medieVot  = votFilme.length
+            ? (votFilme.reduce((a, b) => a + b, 0) / votFilme.length).toFixed(1)
+            : '—';
+
+        let html = `
+            <div class="profile-stats-row" style="margin-bottom:24px;">
+                <div class="profile-stat-pill">
+                    <div class="psp-value">${total}</div>
+                    <div class="psp-label">Recenzii scrise</div>
+                </div>
+                <div class="profile-stat-pill">
+                    <div class="psp-value" style="color:var(--green)">${pozitive}</div>
+                    <div class="psp-label">Pozitive</div>
+                </div>
+                <div class="profile-stat-pill">
+                    <div class="psp-value" style="color:var(--gold)">★ ${medieVot}</div>
+                    <div class="psp-label">Vot Mediu</div>
+                </div>
+            </div>
+            <div class="detail-recenzii-list">`;
+
+        toate.forEach(r => {
+            const esteActor  = r._tip === 'actor';
+            const tinta      = esteActor
+                ? escHtml(r.numeActor || `Actor #${r.idActor || ''}`)
+                : escHtml(r.titluFilm || `Film #${r.idFilm || ''}`);
+            const icon       = esteActor ? '🎭 Actor:' : '🎬 Film:';
+            const comentariu = escHtml(r.comentariu || 'Fără comentariu');
+            const vot        = r.vot || null;
+            const sentiment  = (r.sentimentDetectat || 'neutru').toLowerCase();
+            const sentCls    = sentiment.includes('pozitiv') ? 'tag-green' : sentiment.includes('negativ') ? 'tag-red' : 'tag-gold';
+            const sentEmoji  = sentiment.includes('pozitiv') ? '😊' : sentiment.includes('negativ') ? '😞' : '😐';
+            const carRaw     = r.optiunePredefinita || r.caracterizari || '';
+            const chipsHtml  = carRaw
+                ? `<div class="chips" style="margin-top:10px;">${carRaw.split(',').map(c => `<span class="chip selected" style="cursor:default;">${escHtml(c.trim())}</span>`).join('')}</div>`
+                : '';
+
+            html += `
+                <div class="review-card">
+                    <div class="review-header">
+                        <div>
+                            <span style="color:var(--gold);font-weight:700;">${icon} ${tinta}</span>
+                        </div>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            ${vot ? `<span class="tag tag-gold">★ ${vot}</span>` : ''}
+                            <span class="tag ${sentCls}">${sentEmoji} ${escHtml(sentiment)}</span>
+                        </div>
+                    </div>
+                    <div class="review-text" style="margin-top:10px;font-style:italic;color:var(--text);">
+                        "${comentariu}"
+                    </div>
+                    ${chipsHtml}
+                </div>`;
+        });
+
+        html += `</div>`;
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = `<div class="empty-state">⚠️ Eroare: ${escHtml(e.message)}</div>`;
+    }
+}
+
+    // ═══ VIZUALIZĂRI GLOBALE ═══
+    async function loadAbandonate() {
+        loading('abandonateList');
+        try { renderVizualizari('abandonateList', await apiFetch('/vizualizari/abandonate'), true); }
+        catch(e) { toast('Eroare: '+e.message,'error'); emptyState('abandonateList','⚠️',e.message); }
+    }
+    function renderVizualizari(containerId, viz, isAbandoned) {
+        const el=document.getElementById(containerId);
+        if (!viz||!viz.length) { emptyState(containerId,isAbandoned?'✅':'▶️',isAbandoned?'Nicio vizualizare abandonată.':'Nicio vizualizare înregistrată.'); return; }
+        el.innerHTML=`<div class="table-wrap mt-16"><table class="data-table"><thead><tr><th>Film</th><th>Versiune</th><th>Data</th><th>Durată</th><th>Status</th></tr></thead><tbody>${viz.map(v=>{
+            const title=escHtml(v.titluFilm||v.film||`Film #${v.idFilm||''}`), ver=escHtml(v.versiuneFilm||v.versiune||'—');
+            const data=escHtml(v.dataVizualizare||v.data||'—'), dur=v.durata?v.durata+' min':'—';
+            const stare=escHtml(v.stare||v.status||(isAbandoned?'Abandonat':'Completă'));
+            const stTag=(stare.toLowerCase().includes('abandon')||stare.toLowerCase().includes('incomplet'))?'tag-red':'tag-green';
+            return `<tr><td>${title}</td><td>${ver}</td><td>${data}</td><td>${dur}</td><td><span class="tag ${stTag}">${stare}</span></td></tr>`;
+        }).join('')}</tbody></table></div>`;
+    }
+
+    // ═══ SENTIMENT ═══
+    function renderSentimentResult(boxId,emojiId,labelId,detailId,barsId,result,context) {
+        const sentStr=typeof result==='object'?(result.sentiment||result.sentimentDominant||'').toLowerCase():String(result).toLowerCase();
+        let emoji='😐',color='var(--gold)';
+        if (sentStr.includes('pozitiv')) { emoji='😊'; color='var(--green)'; } else if (sentStr.includes('negativ')) { emoji='😞'; color='var(--red)'; }
+        document.getElementById(emojiId).textContent=emoji;
+        const labelEl=document.getElementById(labelId);
+        labelEl.textContent=typeof result==='object'?(result.sentiment||result.sentimentDominant||JSON.stringify(result)):result;
+        labelEl.style.color=color;
+        document.getElementById(detailId).textContent=context;
+        const barsEl=document.getElementById(barsId);
+        if (typeof result==='object'&&(result.pozitiv!==undefined||result.procent_pozitiv!==undefined)) {
+            const pos=result.pozitiv??result.procent_pozitiv??0, neg=result.negativ??result.procent_negativ??0, neu=result.neutru??result.procent_neutru??0;
+            barsEl.innerHTML=`<div class="sent-bar-row"><div class="sent-bar-label">Pozitiv</div><div class="sent-bar-wrap"><div class="sent-bar-fill sentiment-pos" style="width:${pos}%"></div></div><div class="sent-bar-pct">${Math.round(pos)}%</div></div><div class="sent-bar-row"><div class="sent-bar-label">Negativ</div><div class="sent-bar-wrap"><div class="sent-bar-fill sentiment-neg" style="width:${neg}%"></div></div><div class="sent-bar-pct">${Math.round(neg)}%</div></div><div class="sent-bar-row"><div class="sent-bar-label">Neutru</div><div class="sent-bar-wrap"><div class="sent-bar-fill sentiment-neu" style="width:${neu}%"></div></div><div class="sent-bar-pct">${Math.round(neu)}%</div></div>`;
+        } else { barsEl.innerHTML=''; }
+        document.getElementById(boxId).classList.add('show');
+    }
+    async function loadSentimentFilm() {
+    const titlu = document.getElementById('sentFilmTitlu').value.trim();
+    if (!titlu) { toast('Introdu titlul filmului.', 'error'); return; }
+    try {
+        const sentimentPredominant = await apiFetch('/recenzii/sentiment-film?titlu=' + encodeURIComponent(titlu));
+        renderSentimentPur('sentFilmResult', 'sentFilmEmoji', 'sentFilmLabel', 'sentFilmDetail', sentimentPredominant, `Sentiment dominant pentru filmul „${titlu}”`);
+    } catch(e) {
+        toast('Eroare: ' + e.message, 'error');
+    }
+}
+    async function loadSentimentActorNume() {
+    // Citim separat prenumele și numele de familie din interfață
+    const prenume = document.getElementById('sentActorPrenume').value.trim();
+    const numeFamilie = document.getElementById('sentActorNumeFamilie').value.trim();
+
+    if (!prenume || !numeFamilie) {
+        toast('Introdu atât prenumele, cât și numele de familie.', 'error');
+        return;
+    }
+
+    try {
+        // Trimitem ambii parametri către noul endpoint din Java
+        const url = `/recenzii/sentiment-actor?prenume=${encodeURIComponent(prenume)}&numeFamilie=${encodeURIComponent(numeFamilie)}`;
+        const sentimentPredominant = await apiFetch(url);
+
+        renderSentimentPur('sentActorResult', 'sentActorEmoji', 'sentActorLabel', 'sentActorDetail', sentimentPredominant, `Sentiment dominant pentru actorul ${prenume} ${numeFamilie}`);
+    } catch(e) {
+        toast('Eroare: ' + e.message, 'error');
+    }
+}
+
+            async function loadSentimentCategorie() {
+    const categorie = document.getElementById('sentCategorieSelect').value;
+    if (!categorie) { toast('Selectează o categorie.', 'error'); return; }
+    try {
+        const rezultat = await apiFetch('/recenzii/sentiment-categorie?categorie=' + encodeURIComponent(categorie));
+        renderSentimentPur(
+            'sentCategorieResult',
+            'sentCategorieEmoji',
+            'sentCategorieLabel',
+            'sentCategorieDetail',
+            rezultat,
+            `Sentiment dominant pentru categoria „${categorie}"`
+        );
+    } catch(e) {
+        toast('Eroare: ' + e.message, 'error');
+    }
+}
+
+
+        function renderSentimentPur(boxId, emojiId, labelId, detailId, rezultatText, context) {
+    const sentiment = String(rezultatText).trim().toUpperCase();
+
+    let emoji = '😐';
+    let culoare = 'var(--gold)';
+    let etichetaAfisata = '';
+    let detaliuAfisat = context;
+
+    if (sentiment === 'POZITIV') {
+        emoji = '😊';
+        culoare = 'var(--green)';
+        etichetaAfisata = 'Sentiment Predominant: Pozitiv';
+    } else if (sentiment === 'NEGATIV') {
+        emoji = '😞';
+        culoare = 'var(--red)';
+        etichetaAfisata = 'Sentiment Predominant: Negativ';
+    } else if (sentiment === 'NEUTRU') {
+        emoji = '😐';
+        culoare = 'var(--gold)';
+        etichetaAfisata = 'Sentiment Predominant: Neutru';
+    } else if (sentiment === 'NICIO RECENZIE') {
+        emoji = '📭';
+        culoare = 'var(--text-muted)';
+        etichetaAfisata = 'Fără recenzii în catalog';
+        detaliuAfisat = context + " (Acest titlu/actor există în sistem, dar utilizatorii nu i-au lăsat comentarii).";
+    } else if (sentiment === 'FILM_INEXISTENT') {
+        emoji = '❌';
+        culoare = 'var(--red)';
+        etichetaAfisata = 'Film Inexistent';
+        detaliuAfisat = "Filmul căutat nu a fost găsit în baza de date CineVault. Verifică dacă ai scris titlul corect.";
+    } else if (sentiment === 'ACTOR_INEXISTENT') {
+        emoji = '❌';
+        culoare = 'var(--red)';
+        etichetaAfisata = 'Actor Inexistent';
+        detaliuAfisat = "Actorul căutat nu figurează în baza de date a platformei.";
+    }
+
+    // Înlocuim elementele în interfața grafică
+    document.getElementById(emojiId).textContent = emoji;
+
+    const labelEl = document.getElementById(labelId);
+    labelEl.textContent = etichetaAfisata;
+    labelEl.style.color = culoare;
+
+    document.getElementById(detailId).textContent = detaliuAfisat;
+
+    // Afișăm caseta cu animație
+    document.getElementById(boxId).classList.add('show');
+}
+
+
+    // ═══ PAGE LOADERS update ═══
+// Adaugă în PAGE_LOADERS:
+// predictii: loadPredictii, grupuri: loadGrupuri
+const PAGE_LOADERS = { filme: loadFilme, client: loadClientProfil, predictii: loadPredictii, grupuri: loadGrupuri };
+
+
+// ═══════════════════════════════════════
+// PROFIL CINEMATOGRAFIC (înlocuiește loadClientProfil)
+// ═══════════════════════════════════════
+async function loadClientProfil() {
+    const email = localStorage.getItem('cv_email');
+    if (!email) {
+        document.getElementById('clientProfilContent').innerHTML =
+            '<div class="empty-state"><div class="icon">👤</div><p>Sesiune expirată.</p></div>';
+        return;
+    }
+    loading('clientProfilContent');
+    try {
+        const c = await apiFetch('/clienti/email?email=' + encodeURIComponent(email));
+        if (!c) { emptyState('clientProfilContent','👤','Profilul nu a putut fi găsit.'); return; }
+        window._clientId = c.idClient;
+
+        // Încarcă profilul cinematografic
+        let profil = null;
+        try { profil = await apiFetch('/statistici/profil/' + c.idClient); } catch(e) {}
+
+        const initials = ((c.prenume?c.prenume[0]:'')+(c.nume?c.nume[0]:'')).toUpperCase()||'?';
+
+        document.getElementById('clientProfilContent').innerHTML = `
+            <div class="profile-hero">
+                <div class="profile-avatar">${initials}</div>
+                <div style="flex:1;min-width:0;">
+                    <div class="profile-name">${escHtml(c.prenume)} ${escHtml(c.nume)}</div>
+                    <div class="profile-sub">📧 ${escHtml(c.email)}</div>
+                    <div style="margin-top:8px;">
+                        <span class="tag tag-gold">Client Premium</span>
+                        <span class="tag tag-blue" style="margin-left:6px;">📍 ${escHtml(c.oras||'Locație nespecificată')}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-info-grid">
+                <div class="profile-info-card">
+                    <div class="profile-info-icon">📞</div>
+                    <div><div class="profile-info-label">Telefon</div>
+                    <div class="profile-info-value">${escHtml(c.numarTelefon||'Nespecificat')}</div></div>
+                </div>
+                <div class="profile-info-card">
+                    <div class="profile-info-icon">🏠</div>
+                    <div><div class="profile-info-label">Adresă</div>
+                    <div class="profile-info-value">${escHtml(c.adresa||'Nespecificată')}</div></div>
+                </div>
+                <div class="profile-info-card">
+                    <div class="profile-info-icon">🏙️</div>
+                    <div><div class="profile-info-label">Oraș</div>
+                    <div class="profile-info-value">${escHtml(c.oras||'Nespecificat')}</div></div>
+                </div>
+                <div class="profile-info-card">
+                    <div class="profile-info-icon">📅</div>
+                    <div><div class="profile-info-label">Înregistrat</div>
+                    <div class="profile-info-value">${c.dataInregistrarii||'Recent'}</div></div>
+                </div>
+            </div>
+
+            ${profil ? `
+            <h3 style="color:var(--gold);margin-bottom:14px;">🎬 Profil Cinematografic</h3>
+            <div class="stats-grid" style="margin-bottom:20px;">
+                <div class="stat-card">
+                    <div class="stat-label">Vizualizări totale</div>
+                    <div class="stat-value">${profil.totalVizualizari||0}</div>
+                    <div class="stat-sub">${profil.minuteTotale||0} minute vizionate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Recenzii scrise</div>
+                    <div class="stat-value">${profil.totalRecenzii||0}</div>
+                    <div class="stat-sub">contribuții la platformă</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Abandonate</div>
+                    <div class="stat-value" style="color:var(--red)">${profil.vizualizariAbandonate||0}</div>
+                    <div class="stat-sub">filme neterminate</div>
+                </div>
+            </div>
+            <div class="profile-info-grid">
+                <div class="profile-info-card">
+                    <div class="profile-info-icon">🎭</div>
+                    <div><div class="profile-info-label">Categorie Preferată</div>
+                    <div class="profile-info-value">${escHtml(profil.categoriePreferata||'Nedefinit')}</div></div>
+                </div>
+                <div class="profile-info-card">
+                    <div class="profile-info-icon">⭐</div>
+                    <div><div class="profile-info-label">Actor Favorit</div>
+                    <div class="profile-info-value">${escHtml(profil.actorFavorit||'Nedefinit')}</div></div>
+                </div>
+                <div class="profile-info-card">
+                    <div class="profile-info-icon">🧠</div>
+                    <div><div class="profile-info-label">Sentiment Dominant</div>
+                    <div class="profile-info-value">${escHtml(profil.sentimentDominant||'Neutru')}</div></div>
+                </div>
+            </div>` : ''}
+        `;
+    } catch(e) {
+        document.getElementById('clientProfilContent').innerHTML =
+            `<div class="empty-state"><div class="icon">⚠️</div><p>Eroare: ${escHtml(e.message)}</p></div>`;
+    }
+}
+
+// ═══════════════════════════════════════
+// RECOMANDĂRI
+// ═══════════════════════════════════════
+async function loadRecomandari() {
+    const id = window._clientId;
+    const container = document.getElementById('clientRecomandariList');
+    if (!id) {
+        container.innerHTML = '<div class="empty-state"><div class="icon">👤</div><p>Deschide mai întâi tab-ul Profil.</p></div>';
+        return;
+    }
+    loading('clientRecomandariList');
+    try {
+        const rec = await apiFetch('/statistici/recomandari/' + id);
+        if (!rec || !rec.length) {
+            emptyState('clientRecomandariList','⭐','Nu am putut genera recomandări momentan.');
+            return;
+        }
+        const motiv = rec[0].motiv || '';
+        const posters = ['🎬','🎥','🎞️','🍿','🎦','🎭'];
+        container.innerHTML = `
+            <div style="margin-bottom:16px;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);color:var(--gold);font-size:0.88rem;">
+                ✨ ${escHtml(motiv)}
+            </div>
+            <div class="cards-grid">
+                ${rec.map((f,i) => `
+                    <div class="film-card" onclick="openFilmDetail(${f.idFilm})">
+                        <div class="film-card-poster">${posters[i%posters.length]}
+                            <span class="rating-badge">★ ${f.ratingMediu?f.ratingMediu.toFixed(1):'—'}</span>
+                        </div>
+                        <div class="film-card-body">
+                            <div class="film-card-title">${escHtml(f.titlu)}</div>
+                            <div class="film-card-meta">
+                                <span class="tag tag-gold">${escHtml(f.categorie)}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>`;
+    } catch(e) {
+        container.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(e.message)}</p></div>`;
+    }
+}
+
+// ═══════════════════════════════════════
+// PREDICȚII SEZONIERE
+// ═══════════════════════════════════════
+async function loadPredictii() {
+    loading('predictiiContent');
+    try {
+        const data = await apiFetch('/statistici/predictii');
+        if (!data || !data.length) {
+            emptyState('predictiiContent', '📅', 'Nu există date suficiente pentru predicții.');
+            return;
+        }
+
+        const peeLuni = {};
+        data.forEach(p => {
+            if (!peeLuni[p.luna]) peeLuni[p.luna] = {
+                lunaNume:    p.lunaNume,
+                categorii:   [],
+                tipRezultat: p.tipRezultat
+            };
+            peeLuni[p.luna].categorii.push(p);
+        });
+
+        function tipTag(tip) {
+            if (!tip) return 'tag-blue';
+            return tip.startsWith('Sezonier') ? 'tag-gold' : 'tag-blue';
+        }
+
+        document.getElementById('predictiiContent').innerHTML =
+            Object.entries(peeLuni).map(([luna, date]) => `
+                <div style="margin-bottom:24px;">
+                    <h3 style="color:var(--gold);margin-bottom:12px;">
+                        ${escHtml(date.lunaNume)}
+                        <span class="tag tag-blue" style="margin-left:8px;font-size:0.7rem;">
+                            ${escHtml(date.tipRezultat || '')}
+                        </span>
+                    </h3>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Categorie</th>
+                                    <th>Vizualizări</th>
+                                    <th>Film Popular</th>
+                                    <th>Tip</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${date.categorii.map(c => `
+                                    <tr>
+                                        <td><span class="tag tag-gold">${escHtml(c.categorie)}</span></td>
+                                        <td style="color:var(--gold);font-weight:500;">${c.numarVizualizari}</td>
+                                        <td>${escHtml(c.filmPopular || '—')}</td>
+                                        <td>
+                                            <span class="tag ${tipTag(c.tipRezultat)}">
+                                                ${escHtml(c.tipRezultat || '—')}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `).join('');
+
+    } catch(e) {
+        document.getElementById('predictiiContent').innerHTML =
+            `<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(e.message)}</p></div>`;
+    }
+}
+
+// ═══════════════════════════════════════
+// GRUPARE CLIENȚI
+// ═══════════════════════════════════════
+async function loadGrupuri() {
+    loading('grupuriContent');
+    try {
+        const data = await apiFetch('/statistici/grupuri');
+        if (!data || !data.length) {
+            emptyState('grupuriContent', '👥', 'Niciun client înregistrat.');
+            return;
+        }
+
+        const peGrup = {};
+        data.forEach(c => {
+            if (!peGrup[c.grup]) peGrup[c.grup] = [];
+            peGrup[c.grup].push(c);
+        });
+
+        const sentColor  = s => s&&s.toLowerCase().includes('pozitiv') ? 'tag-green' : s&&s.toLowerCase().includes('negativ') ? 'tag-red' : 'tag-gold';
+        const frecvColor = f => f==='Activ' ? 'tag-green' : f==='Mediu' ? 'tag-blue' : f==='Rar' ? 'tag-gold' : 'tag-red';
+
+        document.getElementById('grupuriContent').innerHTML = Object.entries(peGrup).map(([grup, clienti]) => `
+            <div style="margin-bottom:28px;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                    <h3 style="color:var(--gold);">👥 ${escHtml(grup)}</h3>
+                    <span class="tag tag-blue">${clienti.length} clienți</span>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Categorie</th>
+                                <th>Sentiment</th>
+                                <th>Frecvență</th>
+                                <th>Vot Mediu</th>
+                                <th>Actor Preferat</th>
+                                <th>Vizualizări</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${clienti.map(c => `
+                                <tr>
+                                    <td>
+                                        <div>${escHtml(c.numeClient)}</div>
+                                        <div style="font-size:0.75rem;color:var(--text-dim)">${escHtml(c.email)}</div>
+                                    </td>
+                                    <td><span class="tag tag-gold">${escHtml(c.categorieDominanta)}</span></td>
+                                    <td><span class="tag ${sentColor(c.sentimentDominant)}">${escHtml(c.sentimentDominant)}</span></td>
+                                    <td><span class="tag ${frecvColor(c.frecventa)}">${escHtml(c.frecventa)}</span></td>
+                                    <td style="color:var(--gold);font-weight:500;">
+                                        ${c.votMediu > 0 ? '★ ' + c.votMediu : '—'}
+                                    </td>
+                                    <td style="color:var(--text-muted);font-size:0.85rem;">
+                                        ${escHtml(c.preferintaActor)}
+                                    </td>
+                                    <td style="color:var(--gold);">${c.nrVizualizari}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `).join('');
+    } catch(e) {
+        document.getElementById('grupuriContent').innerHTML =
+            `<div class="empty-state"><div class="icon">⚠️</div><p>${escHtml(e.message)}</p></div>`;
+    }
+}
+
+    // ═══ INIT ═══
+    document.addEventListener('DOMContentLoaded',()=>{
+        loadFilme();
+        document.getElementById('filmDetailOverlay').addEventListener('click',e=>{ if(e.target===document.getElementById('filmDetailOverlay'))closeFilmDetail(); });
+        document.getElementById('actorDetailOverlay').addEventListener('click',e=>{ if(e.target===document.getElementById('actorDetailOverlay'))closeActorDetail(); });
+        document.getElementById('vizualizareOverlay').addEventListener('click',e=>{ if(e.target===document.getElementById('vizualizareOverlay'))closeVizualizareModal(); });
+    });
+</script>
+</body>
+</html>

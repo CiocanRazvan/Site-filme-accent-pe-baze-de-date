@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineVault — Autentificare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+          --bg:         #0a0a0c;
+          --surface:    #111116;
+          --card:       #16161e;
+          --border:     #2a2a38;
+          --gold:       #c9a84c;
+          --gold-dim:   #8a6f2e;
+          --gold-glow:  rgba(201,168,76,0.15);
+          --text:       #e8e4d8;
+          --text-muted: #7a7770;
+          --text-dim:   #4a4742;
+          --red:        #c94c4c;
+          --green:      #4caf7a;
+          --blue:       #4c7ec9;
+          --radius:     6px;
+          --radius-lg:  12px;
+          --font-serif: 'Playfair Display', Georgia, serif;
+          --font-sans:  'DM Sans', sans-serif;
+          --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; height: 100%; }
+
+        body {
+          background: var(--bg);
+          color: var(--text);
+          font-family: var(--font-sans);
+          font-size: 15px;
+          line-height: 1.6;
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow-x: hidden;
+        }
+
+        /* film grain */
+        body::before {
+          content: '';
+          position: fixed; inset: 0;
+          background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+          pointer-events: none; z-index: 9999; opacity: 0.35;
+        }
+
+        /* background decoration */
+        body::after {
+          content: '';
+          position: fixed;
+          top: -200px; left: 50%;
+          transform: translateX(-50%);
+          width: 800px; height: 500px;
+          background: radial-gradient(ellipse at center, rgba(201,168,76,0.06) 0%, transparent 70%);
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        h1, h2, h3 { font-family: var(--font-serif); font-weight: 400; }
+
+        /* toast */
+        .toast-container {
+          position: fixed; bottom: 24px; right: 24px;
+          z-index: 9000; display: flex; flex-direction: column; gap: 8px;
+        }
+        .toast {
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          padding: 12px 18px;
+          font-size: 0.87rem;
+          color: var(--text);
+          box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+          animation: slideIn 0.3s ease;
+          max-width: 320px;
+        }
+        .toast.success { border-color: var(--green); }
+        .toast.error   { border-color: var(--red); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { to { transform: translateX(120%); opacity: 0; } }
+
+        /* layout */
+        .auth-wrap {
+          position: relative;
+          z-index: 1;
+          width: 100%;
+          max-width: 480px;
+          padding: 24px 16px;
+        }
+
+        /* branding */
+        .brand {
+          text-align: center;
+          margin-bottom: 36px;
+        }
+        .brand-mark {
+          font-family: var(--font-serif);
+          font-size: 2rem;
+          color: var(--gold);
+          letter-spacing: 0.02em;
+          display: block;
+        }
+        .brand-sub {
+          font-size: 0.72rem;
+          color: var(--text-dim);
+          text-transform: uppercase;
+          letter-spacing: 0.14em;
+          margin-top: 4px;
+        }
+        .brand-divider {
+          width: 40px; height: 1px;
+          background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+          margin: 14px auto 0;
+        }
+
+        /* card */
+        .auth-card {
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-lg);
+          overflow: hidden;
+        }
+
+        /* tabs */
+        .auth-tabs {
+          display: flex;
+          border-bottom: 1px solid var(--border);
+        }
+        .auth-tab {
+          flex: 1;
+          padding: 16px;
+          background: none;
+          border: none;
+          color: var(--text-muted);
+          font-family: var(--font-sans);
+          font-size: 0.9rem;
+          cursor: pointer;
+          transition: var(--transition);
+          border-bottom: 2px solid transparent;
+          margin-bottom: -1px;
+          letter-spacing: 0.03em;
+        }
+        .auth-tab:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+        .auth-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+        /* panes */
+        .auth-pane { display: none; padding: 28px; }
+        .auth-pane.active { display: block; animation: fadeIn 0.25s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* form elements */
+        .form-row { margin-bottom: 16px; }
+        .form-row label {
+          display: block;
+          font-size: 0.72rem;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: var(--text-muted);
+          margin-bottom: 6px;
+        }
+        .form-row input {
+          width: 100%;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          padding: 10px 12px;
+          color: var(--text);
+          font-family: var(--font-sans);
+          font-size: 0.9rem;
+          transition: var(--transition);
+          outline: none;
+        }
+        .form-row input:focus {
+          border-color: var(--gold-dim);
+          box-shadow: 0 0 0 3px var(--gold-glow);
+        }
+        .form-row input::placeholder { color: var(--text-dim); }
+
+        /* password wrapper */
+        .input-wrap { position: relative; }
+        .input-wrap input { padding-right: 40px; }
+        .toggle-pass {
+          position: absolute; right: 10px; top: 50%;
+          transform: translateY(-50%);
+          background: none; border: none;
+          color: var(--text-dim); cursor: pointer;
+          font-size: 1rem; padding: 4px;
+          transition: var(--transition);
+          line-height: 1;
+        }
+        .toggle-pass:hover { color: var(--text-muted); }
+
+        /* grid */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* section divider inside form */
+        .form-section {
+          font-size: 0.68rem;
+          text-transform: uppercase;
+          letter-spacing: 0.14em;
+          color: var(--text-dim);
+          margin: 20px 0 14px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .form-section::before, .form-section::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: var(--border);
+        }
+
+        /* button */
+        .btn-submit {
+          width: 100%;
+          padding: 11px;
+          background: var(--gold);
+          color: #0a0a0c;
+          border: none;
+          border-radius: var(--radius);
+          font-family: var(--font-sans);
+          font-size: 0.92rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: var(--transition);
+          margin-top: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          letter-spacing: 0.03em;
+        }
+        .btn-submit:hover { background: #d4b254; transform: translateY(-1px); }
+        .btn-submit:active { transform: translateY(0); }
+        .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* spinner inside button */
+        .btn-spinner {
+          width: 16px; height: 16px;
+          border: 2px solid rgba(10,10,12,0.3);
+          border-top-color: #0a0a0c;
+          border-radius: 50%;
+          animation: spin 0.7s linear infinite;
+          display: none;
+        }
+        .btn-submit.loading .btn-spinner { display: block; }
+        .btn-submit.loading .btn-label { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* footer link */
+        .auth-footer {
+          padding: 16px 28px;
+          border-top: 1px solid var(--border);
+          text-align: center;
+          font-size: 0.8rem;
+          color: var(--text-dim);
+        }
+        .auth-footer a {
+          color: var(--gold);
+          text-decoration: none;
+          cursor: pointer;
+        }
+        .auth-footer a:hover { text-decoration: underline; }
+
+        /* error hint */
+        .field-error {
+          font-size: 0.75rem;
+          color: var(--red);
+          margin-top: 4px;
+          display: none;
+        }
+        .form-row.has-error input { border-color: var(--red); }
+        .form-row.has-error .field-error { display: block; }
+
+        /* optional badge */
+        .opt-badge {
+          font-size: 0.65rem;
+          color: var(--text-dim);
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 3px;
+          padding: 1px 5px;
+          margin-left: 6px;
+          vertical-align: middle;
+          letter-spacing: 0.06em;
+        }
+
+        /* success state */
+        .success-pane {
+          display: none;
+          text-align: center;
+          padding: 48px 28px;
+          animation: fadeIn 0.3s ease;
+        }
+        .success-pane.show { display: block; }
+        .success-icon {
+          font-size: 3rem;
+          margin-bottom: 16px;
+        }
+        .success-pane h3 {
+          color: var(--green);
+          margin-bottom: 8px;
+          font-size: 1.3rem;
+        }
+        .success-pane p {
+          color: var(--text-muted);
+          font-size: 0.87rem;
+          margin-bottom: 20px;
+        }
+
+        /* back link */
+        .back-link {
+          display: inline-block;
+          margin-bottom: 28px;
+          color: var(--text-muted);
+          font-size: 0.82rem;
+          text-decoration: none;
+          cursor: pointer;
+          transition: var(--transition);
+        }
+        .back-link:hover { color: var(--gold); }
+
+        @media (max-width: 500px) {
+          .grid-2 { grid-template-columns: 1fr; gap: 0; }
+          .auth-pane { padding: 20px; }
+          .auth-footer { padding: 14px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="auth-wrap">
+
+    <!-- Branding -->
+    <div class="brand">
+        <span class="brand-mark">🎬 CineVault</span>
+        <span class="brand-sub">Film Platform</span>
+        <div class="brand-divider"></div>
+    </div>
+
+    <!-- Auth Card -->
+    <div class="auth-card">
+
+        <!-- Tabs -->
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Autentificare</button>
+            <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Înregistrare</button>
+        </div>
+
+        <!-- ── LOGIN PANE ── -->
+        <div class="auth-pane active" id="pane-login">
+            <div class="form-row" id="row-login-email">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="adresa@email.ro"
+                       onkeydown="if(event.key==='Enter')submitLogin()" autocomplete="email" />
+                <div class="field-error" id="err-login-email">Introdu o adresă de email validă.</div>
+            </div>
+
+            <div class="form-row" id="row-login-pass">
+                <label>Parolă</label>
+                <div class="input-wrap">
+                    <input type="password" id="loginParola" placeholder="••••••••"
+                           onkeydown="if(event.key==='Enter')submitLogin()" autocomplete="current-password" />
+                    <button class="toggle-pass" onclick="togglePass('loginParola',this)" tabindex="-1" aria-label="Arată parola">👁</button>
+                </div>
+                <div class="field-error" id="err-login-pass">Parola este obligatorie.</div>
+            </div>
+
+            <button class="btn-submit" id="btnLogin" onclick="submitLogin()">
+                <div class="btn-spinner"></div>
+                <span class="btn-label">Intră în cont</span>
+            </button>
+        </div>
+
+        <!-- ── REGISTER PANE ── -->
+        <div class="auth-pane" id="pane-register">
+
+            <!-- success state -->
+            <div class="success-pane" id="registerSuccess">
+                <div class="success-icon">🎉</div>
+                <h3>Cont creat cu succes!</h3>
+                <p>Te poți autentifica acum cu adresa de email și parola aleasă.</p>
+                <button class="btn-submit" style="max-width:200px;margin:0 auto;" onclick="switchTab('login')">
+                    <span class="btn-label">Mergi la login</span>
+                </button>
+            </div>
+
+            <div id="registerForm">
+                <div class="grid-2">
+                    <div class="form-row" id="row-prenume">
+                        <label>Prenume *</label>
+                        <input type="text" id="regPrenume" placeholder="ex: Ion" autocomplete="given-name" />
+                        <div class="field-error">Câmp obligatoriu.</div>
+                    </div>
+                    <div class="form-row" id="row-nume">
+                        <label>Nume *</label>
+                        <input type="text" id="regNume" placeholder="ex: Popescu" autocomplete="family-name" />
+                        <div class="field-error">Câmp obligatoriu.</div>
+                    </div>
+                </div>
+
+                <div class="form-row" id="row-reg-email">
+                    <label>Email *</label>
+                    <input type="email" id="regEmail" placeholder="adresa@email.ro" autocomplete="email" />
+                    <div class="field-error" id="err-reg-email">Email invalid.</div>
+                </div>
+
+                <div class="form-row" id="row-reg-pass">
+                    <label>Parolă *</label>
+                    <div class="input-wrap">
+                        <input type="password" id="regParola" placeholder="minim 6 caractere" autocomplete="new-password" />
+                        <button class="toggle-pass" onclick="togglePass('regParola',this)" tabindex="-1" aria-label="Arată parola">👁</button>
+                    </div>
+                    <div class="field-error" id="err-reg-pass">Parola trebuie să aibă minim 6 caractere.</div>
+                </div>
+
+                <div class="form-section">Date de contact</div>
+
+                <div class="form-row" id="row-telefon">
+                    <label>Număr telefon *</label>
+                    <input type="tel" id="regTelefon" placeholder="ex: 0721000000" autocomplete="tel" />
+                    <div class="field-error">Câmp obligatoriu.</div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-row" id="row-oras">
+                        <label>Oraș *</label>
+                        <input type="text" id="regOras" placeholder="ex: Cluj-Napoca" />
+                        <div class="field-error">Câmp obligatoriu.</div>
+                    </div>
+                    <div class="form-row">
+                        <label>Adresă <span class="opt-badge">opțional</span></label>
+                        <input type="text" id="regAdresa" placeholder="Strada, nr..." autocomplete="street-address" />
+                    </div>
+                </div>
+
+                <button class="btn-submit" id="btnRegister" onclick="submitRegister()">
+                    <div class="btn-spinner"></div>
+                    <span class="btn-label">Creează cont</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer hint -->
+        <div class="auth-footer" id="authFooter">
+            Nu ai cont?
+            <a onclick="switchTab('register')">Înregistrează-te gratuit</a>
+        </div>
+    </div>
+
+    <!-- Back to admin -->
+    <div style="text-align:center;margin-top:20px">
+        <a class="back-link" href="index.html">← Înapoi la platformă</a>
+    </div>
+
+</div><!-- /auth-wrap -->
+
+<script>
+    const API = 'http://localhost:8081/api';
+
+    /* ── TOAST ── */
+    function toast(msg, type = 'info') {
+      const tc = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = `toast ${type}`;
+      t.textContent = msg;
+      tc.appendChild(t);
+      setTimeout(() => { t.style.animation = 'slideOut 0.3s ease forwards'; setTimeout(() => t.remove(), 310); }, 3500);
+    }
+
+    /* ── API ── */
+    async function apiFetch(path, opts = {}) {
+      const r = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json', ...opts.headers },
+        ...opts
+      });
+      const ct = r.headers.get('content-type') || '';
+      const body = ct.includes('application/json') ? await r.json() : await r.text();
+      if (!r.ok) throw new Error(typeof body === 'string' ? body : JSON.stringify(body));
+      return body;
+    }
+
+    /* ── TABS ── */
+    function switchTab(tab) {
+      document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.auth-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.getElementById('pane-' + tab).classList.add('active');
+
+      const footer = document.getElementById('authFooter');
+      if (tab === 'login') {
+        footer.innerHTML = `Nu ai cont? <a onclick="switchTab('register')">Înregistrează-te gratuit</a>`;
+      } else {
+        footer.innerHTML = `Ai deja cont? <a onclick="switchTab('login')">Autentifică-te</a>`;
+      }
+
+      clearErrors();
+    }
+
+    /* ── PASSWORD TOGGLE ── */
+    function togglePass(id, btn) {
+      const inp = document.getElementById(id);
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      btn.textContent = show ? '🙈' : '👁';
+    }
+
+    /* ── VALIDATION HELPERS ── */
+    function setError(rowId, show) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+      row.classList.toggle('has-error', show);
+    }
+
+    function clearErrors() {
+      document.querySelectorAll('.form-row').forEach(r => r.classList.remove('has-error'));
+    }
+
+    function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+    /* ── LOADING STATE ── */
+    function setLoading(btnId, on) {
+      const btn = document.getElementById(btnId);
+      btn.classList.toggle('loading', on);
+      btn.disabled = on;
+    }
+
+    /* ── LOGIN ── */
+    async function submitLogin() {
+      clearErrors();
+      const email  = document.getElementById('loginEmail').value.trim();
+      const parola = document.getElementById('loginParola').value;
+
+      let valid = true;
+      if (!isValidEmail(email)) { setError('row-login-email', true); valid = false; }
+      if (!parola)              { setError('row-login-pass', true);  valid = false; }
+      if (!valid) return;
+
+      setLoading('btnLogin', true);
+      try {
+        const data = await apiFetch('/clienti/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, parola })
+        });
+
+        /* store token if returned */
+        if (data && data.token) {
+          localStorage.setItem('cv_token', data.token);
+          localStorage.setItem('cv_email', email);
+        }
+
+        toast('Autentificare reușită! Bine ai venit 🎬', 'success');
+        setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+      } catch (e) {
+        toast('Eroare: ' + e.message, 'error');
+      } finally {
+        setLoading('btnLogin', false);
+      }
+    }
+
+    /* ── REGISTER ── */
+    async function submitRegister() {
+      clearErrors();
+      const prenume = document.getElementById('regPrenume').value.trim();
+      const nume    = document.getElementById('regNume').value.trim();
+      const email   = document.getElementById('regEmail').value.trim();
+      const parola  = document.getElementById('regParola').value;
+      const telefon = document.getElementById('regTelefon').value.trim();
+      const oras    = document.getElementById('regOras').value.trim();
+      const adresa  = document.getElementById('regAdresa').value.trim();
+
+      let valid = true;
+      if (!prenume) { setError('row-prenume', true); valid = false; }
+      if (!nume)    { setError('row-nume', true);    valid = false; }
+      if (!isValidEmail(email)) { setError('row-reg-email', true); valid = false; }
+      if (parola.length < 6)   { setError('row-reg-pass', true);  valid = false; }
+      if (!telefon) { setError('row-telefon', true); valid = false; }
+      if (!oras)    { setError('row-oras', true);    valid = false; }
+      if (!valid) return;
+
+      setLoading('btnRegister', true);
+      try {
+        await apiFetch('/clienti/inregistrare', {
+          method: 'POST',
+          body: JSON.stringify({ prenume, nume: nume, email, parola, numarTelefon: telefon, oras, adresa })
+        });
+
+        /* show success state */
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('registerSuccess').classList.add('show');
+        toast('Cont creat cu succes!', 'success');
+      } catch (e) {
+        toast('Eroare la înregistrare: ' + e.message, 'error');
+      } finally {
+        setLoading('btnRegister', false);
+      }
+    }
+</script>
+</body>
+</html>
